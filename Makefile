@@ -28,5 +28,5 @@ restore-db:
 	cat $(SQL_FILE) | pv | docker exec -i ${DB_CONTAINER_NAME}  /usr/bin/mysql -u root --password=${DB_ROOT_PASSWORD} ${DB_NAME}
 
 run:
-	export GIT_COMMIT=$(shell git rev-list -1 HEAD) && go run ./main/*.go
+	export GIT_COMMIT=$(shell git rev-list -1 HEAD) && /usr/local/go/bin/go run ./main/*.go
 
