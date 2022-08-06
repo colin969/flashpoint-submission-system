@@ -2,8 +2,6 @@ package constants
 
 const ValidatorID = 810112564787675166
 const SystemID = 844246603102945333
-const SubmissionsDir = "/life/fpfss-prod/files/submissions"
-const SubmissionImagesDir = "/life/fpfss-prod/files/submissions-images"
 const UserInAuditSubmissionMaxFilesize = 500000000
 
 const (
