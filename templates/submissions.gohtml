@@ -1,32 +1,35 @@
 {{define "main"}}
-    <div id="main" xmlns="http://www.w3.org/1999/html">
-        <div class="content">
-            <h1>Browse Submissions</h1>
+    <div class="content">
+        <h1>Browse Submissions</h1>
 
-            {{template "submission-filter" .}}
+        {{template "submission-filter" .}}
 
-            {{if  eq (len .Submissions) 0}}
-                <p>No submissions found.</p>
-            {{else}}
+        {{if  eq (len .Submissions) 0}}
+            <p>No submissions found.</p>
+        {{else}}
 
-                {{template "submission-pagenav" .}}
+            {{template "submission-pagenav" .}}
 
-                {{template "submission-table" .}}
+            Found {{.TotalCount}} submissions.
 
-                {{template "submission-pagenav" .}}
+            {{template "submission-table" .}}
 
-                <h2>Batch download submission files</h2>
-                <button class="pure-button pure-button-primary"
-                        onclick="batchDownloadFiles('submission-checkbox', 'fid')">
-                    Download selected
-                </button>
+            {{template "submission-pagenav" .}}
+
+            <h2>Batch download submission files</h2>
+
+            <button class="pure-button pure-button-primary"
+                    onclick="batchDownloadFiles('submission-checkbox', 'fid')">
+                Download selected
+            </button>
+
+            {{if not (isInAudit .UserRoles)}}
+                <span id="submission-batch-size"></span>
                 <h2>Batch comment on submissions</h2>
 
                 {{template "comment-form" .}}
-
             {{end}}
 
-
-        </div>
+        {{end}}
     </div>
 {{end}}

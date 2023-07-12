@@ -1,0 +1,3 @@
+DELETE
+FROM action
+WHERE id = 12;

@@ -5,20 +5,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"html/template"
+	"net/http"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/Dri0m/flashpoint-submission-system/constants"
 	"github.com/Dri0m/flashpoint-submission-system/service"
 	"github.com/Dri0m/flashpoint-submission-system/types"
 	"github.com/Dri0m/flashpoint-submission-system/utils"
 	"github.com/Masterminds/sprig"
 	"github.com/kofalt/go-memoize"
-	"html/template"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
-var cache = memoize.NewMemoizer(10*time.Minute, 60*time.Minute)
+var templateCache = memoize.NewMemoizer(10*time.Minute, 60*time.Minute)
 
 // RenderTemplates is a helper for rendering templates
 func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *http.Request, data interface{}, filenames ...string) {
@@ -35,13 +39,16 @@ func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *htt
 		"isAdder":                       constants.IsAdder,
 		"isInAudit":                     constants.IsInAudit,
 		"isGod":                         constants.IsGod,
-		"megabytify":                    utils.Megabytify,
+		"sizeToString":                  utils.SizeToString,
 		"splitMultilineText":            utils.SplitMultilineText,
 		"capitalizeAscii":               utils.CapitalizeASCII,
 		"parseMetaTags":                 parseMetaTags,
 		"submissionsShowPreviousButton": submissionsShowPreviousButton,
 		"submissionsShowNextButton":     submissionsShowNextButton,
 		"capString":                     capString,
+		"er":                            equalReference,
+		"ner":                           notEqualReference,
+		"localeNum":                     localeNum,
 	})
 
 	parse := func() (interface{}, error) {
@@ -55,7 +62,7 @@ func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *htt
 	if a.Conf.IsDev {
 		result, err = parse()
 	} else {
-		result, err, cached = cache.Memoize(strings.Join(templates, ","), parse)
+		result, err, cached = templateCache.Memoize(strings.Join(templates, ","), parse)
 	}
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -63,11 +70,7 @@ func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *htt
 		return
 	}
 
-	if cached {
-		utils.LogCtx(ctx).Debug("using cached template files")
-	} else {
-		utils.LogCtx(ctx).Debug("reading fresh template files from the disk")
-	}
+	utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("executing template files")
 
 	tmpl := result.(*template.Template)
 
@@ -119,17 +122,19 @@ func (a *App) GetUserIDFromCookie(r *http.Request) (int64, error) {
 	return uid, nil
 }
 
-func (a *App) GetSecretFromCookie(r *http.Request) (string, error) {
+func (a *App) GetSecretFromCookie(ctx context.Context, r *http.Request) (string, error) {
 	cookieMap, err := a.CC.GetSecureCookie(r, utils.Cookies.Login)
-	if errors.Is(err, http.ErrNoCookie) {
-		return "", nil
-	}
 	if err != nil {
+		if err == http.ErrNoCookie {
+			return "", err
+		}
+		utils.LogCtx(ctx).Error(err)
 		return "", err
 	}
 
 	token, err := service.ParseAuthToken(cookieMap)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return "", err
 	}
 
@@ -146,11 +151,18 @@ func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{},
 	switch requestType {
 	case constants.RequestJSON, constants.RequestData, constants.RequestWeb:
 		w.WriteHeader(status)
-		w.Header().Set("Content-Type", "application/json")
 		if data != nil {
+			w.Header().Set("Content-Type", "application/json")
 			err := json.NewEncoder(w).Encode(data)
 			if err != nil {
 				utils.LogCtx(ctx).Error(err)
+				if errors.Is(err, syscall.ECONNRESET) {
+					return
+				}
+				if errors.Is(err, syscall.EPIPE) {
+					return
+				}
+				writeError(ctx, w, err)
 			}
 		}
 	default:
@@ -161,10 +173,10 @@ func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{},
 func writeError(ctx context.Context, w http.ResponseWriter, err error) {
 	ufe := &constants.PublicError{}
 	if errors.As(err, ufe) {
-		writeResponse(ctx, w, presp(ufe.Msg), ufe.Status)
+		writeResponse(ctx, w, presp(ufe.Msg, ufe.Status), ufe.Status)
 	} else {
 		msg := http.StatusText(http.StatusInternalServerError)
-		writeResponse(ctx, w, presp(msg), http.StatusInternalServerError)
+		writeResponse(ctx, w, presp(msg, http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }
 
@@ -176,8 +188,8 @@ func dberr(err error) error {
 	return constants.DatabaseError{Err: err}
 }
 
-func presp(msg string) constants.PublicResponse {
-	return constants.PublicResponse{Msg: &msg}
+func presp(msg string, status int) constants.PublicResponse {
+	return constants.PublicResponse{Msg: &msg, Status: status}
 }
 
 func parseMetaTags(rawTags string, tagList []types.Tag) []types.Tag {
@@ -227,10 +239,36 @@ func capString(maxLen int, s *string) string {
 	}
 	str := *s
 	if len(str) <= 3 {
-		return "..."
+		return *s
 	}
 	if len(str) <= maxLen {
 		return str
 	}
 	return str[:maxLen-3] + "..."
+}
+
+func equalReference(ref *string, str string) bool {
+	if ref != nil {
+		return *ref == str
+	} else {
+		return str == ""
+	}
+}
+
+func notEqualReference(ref *string, str string) bool {
+	if ref != nil {
+		return *ref != str
+	} else {
+		return str != ""
+	}
+}
+
+func localeNum(ref *int64) string {
+	p := message.NewPrinter(language.English)
+	s := p.Sprintf("%d\n", *ref)
+	return s
+}
+
+func isReturnURLValid(s string) bool {
+	return len(s) > 0 && strings.HasPrefix(s, "/") && !strings.HasPrefix(s, "//")
 }

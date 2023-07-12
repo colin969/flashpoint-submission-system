@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int64, formAction, formMessage, formIgnoreDupeActions string) error {
+func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int64, formAction, formMessage, formIgnoreDupeActions, subDirFullPath, dataPacksDir, imagesDir string, r *http.Request) error {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -57,11 +57,14 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 
 	// stop request changes on comment batches
 	if formAction == constants.ActionRequestChanges && len(sids) > 1 {
-		return perr(fmt.Sprintf("cannot request changes on multiple submissions at once"), http.StatusBadRequest)
+		return perr("cannot request changes on multiple submissions at once", http.StatusBadRequest)
+	}
+	if formAction == constants.ActionReject && len(sids) > 1 {
+		return perr("cannot reject multiple submissions at once", http.StatusBadRequest)
 	}
 
 	utils.LogCtx(ctx).Debugf("searching submissions for comment batch")
-	foundSubmissions, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: sids})
+	foundSubmissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: sids})
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -79,6 +82,8 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 		}
 	}
 
+	commentCounter := 0
+
 	// TODO optimize batch operation even more
 	for _, submission := range foundSubmissions {
 		sid := submission.SubmissionID
@@ -89,6 +94,17 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				continue
 			}
 			return err
+		}
+
+		// If marking as added, make sure we update the live metadata before approving the comment
+		if formAction == constants.ActionMarkAdded {
+			gameId, err := s.AddSubmissionToFlashpoint(ctx, submission, subDirFullPath, dataPacksDir, imagesDir, r)
+			if err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return err
+			}
+			addedMessage := fmt.Sprintf("Marked the submission as added to Flashpoint. Game ID: %s", *gameId)
+			message = &addedMessage
 		}
 
 		// actually store the comment
@@ -106,6 +122,29 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 			formAction == constants.ActionAssignVerification ||
 			formAction == constants.ActionUnassignVerification {
 			c.Message = nil
+		}
+
+		// subscribe the commenter
+		if formAction == constants.ActionAssignTesting ||
+			formAction == constants.ActionUnassignTesting ||
+			formAction == constants.ActionAssignVerification ||
+			formAction == constants.ActionUnassignVerification ||
+			formAction == constants.ActionApprove ||
+			formAction == constants.ActionRequestChanges ||
+			formAction == constants.ActionVerify ||
+			formAction == constants.ActionReject {
+
+			subscribed, err := s.dal.IsUserSubscribedToSubmission(dbs, uid, sid)
+			if err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+			if !subscribed {
+				if err := s.dal.SubscribeUserToSubmission(dbs, uid, sid); err != nil {
+					utils.LogCtx(ctx).Error(err)
+					return dberr(err)
+				}
+			}
 		}
 
 		if err := s.dal.StoreComment(dbs, c); err != nil {
@@ -151,12 +190,16 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 			utils.LogCtx(ctx).Error(err)
 			return dberr(err)
 		}
+
+		commentCounter++
 	}
 
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
+
+	utils.LogCtx(ctx).WithField("amount", commentCounter).WithField("commentAction", formAction).Debug("comments received")
 
 	s.announceNotification()
 

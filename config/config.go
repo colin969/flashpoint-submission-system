@@ -2,16 +2,17 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 	"os"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 type Config struct {
 	Port                         int64
 	OauthConf                    *oauth2.Config
+	DeviceFlowVerificaitonUrl    string
 	AuthBotToken                 string
 	FlashpointServerID           string
 	SecurecookieHashKeyPrevious  string
@@ -27,10 +28,29 @@ type Config struct {
 	DBIP                         string
 	DBPort                       int64
 	DBName                       string
+	PostgresUser                 string
+	PostgresPassword             string
+	PostgresHost                 string
+	PostgresPort                 int64
 	NotificationBotToken         string
 	NotificationChannelID        string
 	CurationFeedChannelID        string
 	IsDev                        bool
+	ResumableUploadDirFullPath   string
+	FlashfreezeDirFullPath       string
+	ArchiveIndexerServerURL      string
+	FlashfreezeIngestDirFullPath string
+	FixesDirFullPath             string
+	SubmissionsDirFullPath       string
+	SubmissionImagesDirFullPath  string
+	SystemUid                    int64
+	ImagesCdn                    string
+	ImagesCdnCompressed          bool
+	MinLauncherVersion           string
+	DataPacksDir                 string
+	ImagesDir                    string
+	DeletedDataPacksDir          string
+	DeletedImagesDir             string
 }
 
 func EnvString(name string) string {
@@ -66,12 +86,6 @@ func EnvBool(name string) bool {
 }
 
 func GetConfig(l *logrus.Entry) *Config {
-	l.Infoln("loading config...")
-	err := godotenv.Load()
-	if err != nil {
-		l.Fatal(err)
-	}
-
 	const ScopeIdentify = "identify"
 
 	return &Config{
@@ -87,6 +101,7 @@ func GetConfig(l *logrus.Entry) *Config {
 				AuthStyle: oauth2.AuthStyleInParams,
 			},
 		},
+		DeviceFlowVerificaitonUrl:    EnvString("DEVICE_FLOW_VERIFICATION_URL"),
 		AuthBotToken:                 EnvString("AUTH_BOT_TOKEN"),
 		FlashpointServerID:           EnvString("FLASHPOINT_SERVER_ID"),
 		SecurecookieHashKeyPrevious:  EnvString("SECURECOOKIE_HASH_KEY_PREVIOUS"),
@@ -100,9 +115,28 @@ func GetConfig(l *logrus.Entry) *Config {
 		DBIP:                         EnvString("DB_IP"),
 		DBPort:                       EnvInt("DB_PORT"),
 		DBName:                       EnvString("DB_NAME"),
+		PostgresUser:                 EnvString("POSTGRES_USER"),
+		PostgresPassword:             EnvString("POSTGRES_PASSWORD"),
+		PostgresHost:                 EnvString("POSTGRES_HOST"),
+		PostgresPort:                 EnvInt("POSTGRES_PORT"),
 		NotificationBotToken:         EnvString("NOTIFICATION_BOT_TOKEN"),
 		NotificationChannelID:        EnvString("NOTIFICATION_CHANNEL_ID"),
 		CurationFeedChannelID:        EnvString("CURATION_FEED_CHANNEL_ID"),
 		IsDev:                        EnvBool("IS_DEV"),
+		ResumableUploadDirFullPath:   EnvString("RESUMABLE_UPLOAD_DIR_FULL_PATH"),
+		FlashfreezeDirFullPath:       EnvString("FLASHFREEZE_DIR_FULL_PATH"),
+		ArchiveIndexerServerURL:      EnvString("ARCHIVE_INDEXER_SERVER_URL"),
+		FlashfreezeIngestDirFullPath: EnvString("FLASHFREEZE_INGEST_DIR_FULL_PATH"),
+		FixesDirFullPath:             EnvString("FIXES_DIR_FULL_PATH"),
+		SubmissionsDirFullPath:       EnvString("SUBMISSIONS_DIR_FULL_PATH"),
+		SubmissionImagesDirFullPath:  EnvString("SUBMISSION_IMAGES_DIR_FULL_PATH"),
+		SystemUid:                    EnvInt("SYSTEM_UID"),
+		ImagesCdn:                    EnvString("IMAGES_CDN"),
+		ImagesCdnCompressed:          EnvBool("IMAGES_CDN_COMPRESSED"),
+		MinLauncherVersion:           EnvString("MIN_LAUNCHER_VERSION"),
+		DataPacksDir:                 EnvString("DATA_PACKS_PATH"),
+		ImagesDir:                    EnvString("IMAGES_PATH"),
+		DeletedDataPacksDir:          EnvString("DELETED_DATA_PACKS_PATH"),
+		DeletedImagesDir:             EnvString("DELETED_IMAGES_PATH"),
 	}
 }

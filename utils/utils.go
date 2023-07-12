@@ -11,7 +11,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -26,6 +28,8 @@ const (
 type RealRandomString struct {
 	src rand.Source
 }
+
+var MetadataMutex sync.Mutex
 
 func NewRealRandomStringProvider() *RealRandomString {
 	return &RealRandomString{
@@ -59,71 +63,8 @@ func FormatAvatarURL(uid int64, avatar string) string {
 	return fmt.Sprintf("https://cdn.discordapp.com/avatars/%d/%s", uid, avatar)
 }
 
-// UploadFile POSTs a given file to a given URL via multipart writer and returns the response body if OK
-func UploadFile(ctx context.Context, url string, filePath string) ([]byte, error) {
-	LogCtx(ctx).WithField("filepath", filePath).Debug("opening file for upload")
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	client := http.Client{}
-	// Prepare a form that you will submit to that URL.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	var fw io.Writer
-
-	if fw, err = w.CreateFormFile("file", f.Name()); err != nil {
-		return nil, err
-	}
-
-	LogCtx(ctx).WithField("filepath", filePath).Debug("copying file into multipart writer")
-	if _, err = io.Copy(fw, f); err != nil {
-		return nil, err
-	}
-
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
-	w.Close()
-
-	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", url, &b)
-	if err != nil {
-		return nil, err
-	}
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	// Submit the request
-	LogCtx(ctx).WithField("url", url).WithField("filepath", filePath).Debug("uploading file")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check the response
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusInternalServerError {
-			return nil, fmt.Errorf("The validator bot has exploded, please send the following stack trace to @Dri0m or @CurationBotGuy on discord: %s", string(bodyBytes))
-		}
-		return nil, fmt.Errorf("unexpected response: %s", resp.Status)
-	}
-
-	LogCtx(ctx).WithField("url", url).WithField("filepath", filePath).Debug("response OK")
-
-	return bodyBytes, nil
-}
-
 func FormatLike(s string) string {
-	return "%" + strings.Replace(strings.Replace(s, "%", `\%`, -1), "_", `\_`, -1) + "%"
+	return "%" + s + "%"
 }
 
 func WriteTarball(w io.Writer, filePaths []string) error {
@@ -133,7 +74,7 @@ func WriteTarball(w io.Writer, filePaths []string) error {
 	for _, filePath := range filePaths {
 		err := addFileToTarWriter(filePath, tarWriter)
 		if err != nil {
-			return fmt.Errorf("add file to tar: %w", err.Error())
+			return fmt.Errorf("add file to tar: %s", err.Error())
 		}
 	}
 
@@ -180,12 +121,19 @@ func Unpointify(s *string) string {
 	return *s
 }
 
-// Megabytify convert size in bytes (123456789B) to a string with a separator at the megabyte position and some precision
-func Megabytify(size int64) string {
-	mb := size / 1000000
-	b := (size % 1000000) / 100000
-
-	return fmt.Sprintf("%d.%01d", mb, b)
+// Convert size in bytes (123456789B) to a human readable string (Extensions B through EB)
+func SizeToString(size int64) string {
+	const unit = 1000
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f%cB",
+		float64(size)/float64(div), "kMGTPE"[exp])
 }
 
 func SplitMultilineText(s *string) []string {
@@ -201,10 +149,8 @@ func NewBucketLimiter(d time.Duration, capacity int) (chan bool, *time.Ticker) {
 	ticker := time.NewTicker(d)
 	go func() {
 		for {
-			select {
-			case <-ticker.C:
-				bucket <- true
-			}
+			<-ticker.C
+			bucket <- true
 		}
 	}()
 	return bucket, ticker
@@ -250,4 +196,110 @@ func GetURL(url string) ([]byte, error) {
 	}
 
 	return result.Bytes(), nil
+}
+
+func GetMemStats() *runtime.MemStats {
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	return m
+}
+
+func BoolToString(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
+}
+
+func UploadMultipartFile(ctx context.Context, url string, f io.Reader, filename string) ([]byte, error) {
+	body, writer := io.Pipe()
+	client := http.Client{Timeout: 86400 * time.Second}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	mwriter := multipart.NewWriter(writer)
+	req.Header.Add("Content-Type", mwriter.FormDataContentType())
+
+	errchan := make(chan error)
+
+	LogCtx(ctx).WithField("url", url).Debug("uploading file")
+
+	go func() {
+		defer close(errchan)
+		defer writer.Close()
+		defer mwriter.Close()
+
+		w, err := mwriter.CreateFormFile("file", filename)
+		if err != nil {
+			errchan <- err
+			return
+		}
+
+		if written, err := io.Copy(w, f); err != nil {
+			errchan <- fmt.Errorf("error copying %s (%d bytes written): %v", filename, written, err)
+			return
+		}
+
+		if err := mwriter.Close(); err != nil {
+			errchan <- err
+			return
+		}
+	}()
+
+	resp, err := client.Do(req)
+	merr := <-errchan
+
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	if err != nil || merr != nil {
+		return nil, fmt.Errorf("http error: %v, multipart error: %v", err, merr)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the response
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("upload to remote error: %s", string(bodyBytes))
+	}
+
+	LogCtx(ctx).WithField("url", url).Debug("response OK")
+
+	return bodyBytes, nil
+}
+
+type ValueOnlyContext struct {
+	context.Context
+}
+
+func (ValueOnlyContext) Deadline() (deadline time.Time, ok bool) {
+	return
+}
+func (ValueOnlyContext) Done() <-chan struct{} {
+	return nil
+}
+func (ValueOnlyContext) Err() error {
+	return nil
+}
+
+func Int64Ptr(n int64) *int64 {
+	return &n
+}
+
+func StrPtr(s string) *string {
+	return &s
+}
+
+func NilTime(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
 }

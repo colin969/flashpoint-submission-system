@@ -22,3 +22,9 @@ db.db*
 files/*
 backups/*
 *.log.gz
+
+resumableuploadservice.db*
+resumable-data/*
+
+.idea/*
+.vscode/*

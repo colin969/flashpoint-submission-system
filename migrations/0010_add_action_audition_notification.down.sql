@@ -1,0 +1,3 @@
+DELETE
+FROM action
+WHERE id IN (13, 14);

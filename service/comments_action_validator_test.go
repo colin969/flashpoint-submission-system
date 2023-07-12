@@ -112,13 +112,13 @@ func Test_isActionValidForSubmission(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "user cannot double request changes",
+			name: "user can double request changes",
 			args: args{
 				uid:        commenterID,
 				formAction: constants.ActionRequestChanges,
 				submission: &types.ExtendedSubmission{RequestedChangesUserIDs: []int64{commenterID}},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "user cannot assign for testing that's marked as added",
@@ -270,6 +270,33 @@ func Test_isActionValidForSubmission(t *testing.T) {
 				uid:        commenterID,
 				formAction: constants.ActionAssignVerification,
 				submission: &types.ExtendedSubmission{ApprovedUserIDs: []int64{commenterID}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "user cannot reject submission that's marked as added to flashpoint",
+			args: args{
+				uid:        commenterID,
+				formAction: constants.ActionReject,
+				submission: &types.ExtendedSubmission{DistinctActions: []string{constants.ActionMarkAdded}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "user cannot reject submission that's already rejected",
+			args: args{
+				uid:        commenterID,
+				formAction: constants.ActionReject,
+				submission: &types.ExtendedSubmission{DistinctActions: []string{constants.ActionReject}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "user cannot upload a submission that's already rejected",
+			args: args{
+				uid:        commenterID,
+				formAction: constants.ActionUpload,
+				submission: &types.ExtendedSubmission{DistinctActions: []string{constants.ActionReject}},
 			},
 			wantErr: true,
 		},

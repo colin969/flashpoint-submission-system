@@ -1,31 +1,62 @@
 {{define "main"}}
-    <div id="main" xmlns="http://www.w3.org/1999/html">
-        <div class="content">
+    <div class="content">
+
+        <div id="content-resumable" hidden>
             <h1>Submit curation(s)</h1>
 
             {{if isInAudit .UserRoles}}
-                <p>Max filesize is 200MB. You are not able to submit more than one submission.</p>
-                <input type="file" name="files" id="file-input">
+                <p>Max filesize is 500MB. You are not able to submit more than one submission.
+                <br>
+                <br>
+                <b>Make sure to read the Not Accepted Curations list: </b> <a href="https://bluemaxima.org/flashpoint/datahub/Not_Accepted_Curations">Linked Here</a>
+                <br>
+                <br>
+                <b>Intentionally uploading a malicious file or any illegal content will at a minimum
+                    be rewarded with a permanent IP ban.</b><br></p>
             {{else}}
                 <p>
                     Max filesize is 50GB. Note that it may take a long time to process large files after the upload step
-                    is
-                    done, and the upload process is not finished until this step is over.<br>
+                    is done, and the upload process is not finished until this step is over.<br>
                     When uploading multiple files, they are treated as individual uploads, so if one fails, it does not
-                    cause the
-                    other files to be rejected.<br>
-                    The form is uploading two files at once, so don't be spooked if you see the upload progress stop on
-                    a submission, it's just taking a breather. <br>
-                    In case the upload fails, you *should* always receive a red error message.<br>
+                    cause the other files to be rejected.<br>
+                    <b>The upload can be paused and resumed later</b> (up to 48h later), <b>even if the window is
+                        closed</b>
+                    (the file's name and size must be the same in order to resume).<br>
+                    <br>
+                    <b>Make sure to read the Not Accepted Curations list: </b> <a href="https://bluemaxima.org/flashpoint/datahub/Not_Accepted_Curations">Linked Here</a>
+                    <br>
+                    <br>
+                    <b>Intentionally uploading a malicious file or any illegal content will at a minimum
+                        be rewarded with a permanent IP ban.</b><br>
                 </p>
-
-                <input type="file" name="files" id="file-input" multiple="multiple">
             {{end}}
 
-            <input class="pure-button pure-button button-upload-file" id="upload-button" value="Upload">
-            Parallel upload queues: <input type="number" min="1" max="20" value="2" id="upload-queues"><br>
-            <div id="progress-bars-container"></div>
+            <div id="resumable-drop" class="gray-drop">
+                <span>Click or drag files here</span>
+            </div>
+
+            <br><br>
+
+            <b>Do not upload submissions updates here, upload them using the upload form on the submission's page</b>
+
+            <br><br>
+
+            <input type="button" class="pure-button pure-button button-upload-file" value="Start"
+                   onclick="startUpload()">
+            <input type="button" class="pure-button pure-button button-pause" value="Pause" onclick="pauseUpload()">
+            <input type="button" class="pure-button pure-button button-cancel" value="Cancel" onclick="cancelUpload()">
+
+            <br><br>
+
+            <div id="progress-bars-container-resumable"></div>
         </div>
+
     </div>
-    <script>bindFancierUpload("/api/submission-receiver")</script>
+
+    <link rel="stylesheet" href="/static/resumable/css.css">
+    <script src="/static/resumable/resumable.js"></script>
+    <script src="/static/resumable/uploader.js"></script>
+    <script>initResumableUploader("/api/submission-receiver-resumable", {{if isInAudit .UserRoles}}1
+        {{else}}undefined{{end}}, [".7z", ".zip"], true
+        )</script>
 {{end}}

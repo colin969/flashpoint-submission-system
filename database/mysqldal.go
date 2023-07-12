@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/Dri0m/flashpoint-submission-system/config"
 	"github.com/Dri0m/flashpoint-submission-system/constants"
 	"github.com/Dri0m/flashpoint-submission-system/types"
@@ -11,8 +14,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/golang-migrate/migrate/source/file"
 	"github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
 type mysqlDAL struct {
@@ -27,6 +28,7 @@ func NewMysqlDAL(conn *sql.DB) *mysqlDAL {
 
 // OpenDB opens DAL or panics
 func OpenDB(l *logrus.Entry, conf *config.Config) *sql.DB {
+	l.Infoln("connecting to the database")
 
 	user := conf.DBUser
 	pass := conf.DBPassword
@@ -40,6 +42,7 @@ func OpenDB(l *logrus.Entry, conf *config.Config) *sql.DB {
 		l.Fatal(err)
 	}
 
+	l.Infoln("database connected")
 	return db
 }
 
@@ -99,8 +102,7 @@ func (d *mysqlDAL) DeleteSession(dbs DBSession, secret string) error {
 
 // GetUIDFromSession returns user ID and/or expiration state
 func (d *mysqlDAL) GetUIDFromSession(dbs DBSession, key string) (int64, bool, error) {
-	var row *sql.Row
-	row = dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT uid, expires_at FROM session WHERE secret=?`, key)
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT uid, expires_at FROM session WHERE secret=?`, key)
 
 	var uid int64
 	var expiration int64
@@ -158,17 +160,17 @@ func (d *mysqlDAL) StoreDiscordServerRoles(dbs DBSession, roles []types.DiscordR
 
 // StoreDiscordUserRoles store discord user roles
 func (d *mysqlDAL) StoreDiscordUserRoles(dbs DBSession, uid int64, roles []int64) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `DELETE FROM discord_user_role WHERE fk_uid = ?`, uid)
+	if err != nil {
+		return err
+	}
+
 	if len(roles) == 0 {
 		return nil
 	}
 	data := make([]interface{}, 0, len(roles)*3)
 	for _, role := range roles {
 		data = append(data, uid, role)
-	}
-
-	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `DELETE FROM discord_user_role WHERE fk_uid = ?`, uid)
-	if err != nil {
-		return err
 	}
 
 	const valuePlaceholder = `(?, ?)`
@@ -278,7 +280,7 @@ func (d *mysqlDAL) GetSubmissionFiles(dbs DBSession, sfids []int64) ([]*types.Su
 	}
 
 	if len(result) != len(sfids) {
-		return nil, fmt.Errorf("%s files were not found", len(result)-len(sfids))
+		return nil, fmt.Errorf("%d files were not found", len(result)-len(sfids))
 	}
 
 	return result, nil
@@ -318,11 +320,13 @@ func (d *mysqlDAL) GetExtendedSubmissionFilesBySubmissionID(dbs DBSession, sid i
 func (d *mysqlDAL) StoreCurationMeta(dbs DBSession, cm *types.CurationMeta) error {
 	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO curation_meta (fk_submission_file_id, application_path, developer, extreme, game_notes, languages,
                            launch_command, original_description, play_mode, platform, publisher, release_date, series, source, status,
-                           tags, tag_categories, title, alternate_titles, library, version, curation_notes, mount_parameters) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                           tags, tag_categories, title, alternate_titles, library, version, curation_notes, mount_parameters, uuid, game_exists,
+                           primary_platform) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		cm.SubmissionFileID, cm.ApplicationPath, cm.Developer, cm.Extreme, cm.GameNotes, cm.Languages,
 		cm.LaunchCommand, cm.OriginalDescription, cm.PlayMode, cm.Platform, cm.Publisher, cm.ReleaseDate, cm.Series, cm.Source, cm.Status,
-		cm.Tags, cm.TagCategories, cm.Title, cm.AlternateTitles, cm.Library, cm.Version, cm.CurationNotes, cm.MountParameters)
+		cm.Tags, cm.TagCategories, cm.Title, cm.AlternateTitles, cm.Library, cm.Version, cm.CurationNotes, cm.MountParameters, cm.UUID, cm.GameExists,
+		cm.PrimaryPlatform)
 	return err
 }
 
@@ -330,14 +334,16 @@ func (d *mysqlDAL) StoreCurationMeta(dbs DBSession, cm *types.CurationMeta) erro
 func (d *mysqlDAL) GetCurationMetaBySubmissionFileID(dbs DBSession, sfid int64) (*types.CurationMeta, error) {
 	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT submission_file.fk_submission_id, application_path, developer, extreme, game_notes, languages,
                            launch_command, original_description, play_mode, platform, publisher, release_date, series, source, status,
-                           tags, tag_categories, title, alternate_titles, library, version, curation_notes, mount_parameters 
+                           tags, tag_categories, title, alternate_titles, library, version, curation_notes, mount_parameters, uuid, game_exists,
+                           primary_platform
 		FROM curation_meta JOIN submission_file ON curation_meta.fk_submission_file_id = submission_file.id
 		WHERE fk_submission_file_id=? AND submission_file.deleted_at IS NULL`, sfid)
 
 	c := &types.CurationMeta{SubmissionFileID: sfid}
 	err := row.Scan(&c.SubmissionID, &c.ApplicationPath, &c.Developer, &c.Extreme, &c.GameNotes, &c.Languages,
 		&c.LaunchCommand, &c.OriginalDescription, &c.PlayMode, &c.Platform, &c.Publisher, &c.ReleaseDate, &c.Series, &c.Source, &c.Status,
-		&c.Tags, &c.TagCategories, &c.Title, &c.AlternateTitles, &c.Library, &c.Version, &c.CurationNotes, &c.MountParameters)
+		&c.Tags, &c.TagCategories, &c.Title, &c.AlternateTitles, &c.Library, &c.Version, &c.CurationNotes, &c.MountParameters, &c.UUID, &c.GameExists,
+		&c.PrimaryPlatform)
 	if err != nil {
 		return nil, err
 	}
@@ -360,6 +366,22 @@ func (d *mysqlDAL) StoreComment(dbs DBSession, c *types.Comment) error {
 		return err
 	}
 
+	return nil
+}
+
+func (d *mysqlDAL) PopulateRevisionInfo(dbs DBSession, revisions []*types.RevisionInfo) error {
+	for _, revision := range revisions {
+		var avatar string
+		err := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT username, avatar
+		FROM discord_user
+		WHERE discord_user.id = ?`,
+			revision.AuthorID).
+			Scan(&revision.Username, &avatar)
+		if err != nil {
+			return err
+		}
+		revision.AvatarURL = utils.FormatAvatarURL(revision.AuthorID, avatar)
+	}
 	return nil
 }
 
@@ -592,7 +614,7 @@ func (d *mysqlDAL) IsUserSubscribedToSubmission(dbs DBSession, uid, sid int64) (
 		return false, err
 	}
 
-	return count == 1, nil
+	return count > 0, nil
 }
 
 // StoreNotification stores a notification message in the database which acts as a queue for the notification service
@@ -615,6 +637,32 @@ func (d *mysqlDAL) GetUsersForNotification(dbs DBSession, authorID, sid int64, a
 		AND notification_settings.fk_action_id = (SELECT id FROM action where name = ?)
 		AND notification_settings.fk_user_id != ?`,
 		sid, action, authorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]int64, 0)
+	var uid int64
+
+	for rows.Next() {
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		result = append(result, uid)
+	}
+
+	return result, nil
+}
+
+// GetUsersForUniversalNotification returns a list of users who should be notified by an event not dependent on a submission ID
+func (d *mysqlDAL) GetUsersForUniversalNotification(dbs DBSession, authorID int64, action string) ([]int64, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
+		SELECT DISTINCT fk_user_id
+		FROM notification_settings
+		WHERE fk_action_id = (SELECT id FROM action where name = ?)
+		AND fk_user_id != ?`,
+		action, authorID)
 	if err != nil {
 		return nil, err
 	}
@@ -776,7 +824,7 @@ func (d *mysqlDAL) StoreMasterDBGames(dbs DBSession, games []*types.MasterDataba
 	if len(games) == 0 {
 		return nil
 	}
-	data := make([]interface{}, 0, len(games)*3)
+	data := make([]interface{}, 0, len(games)*21)
 	for _, g := range games {
 		data = append(data, g.UUID, g.Title, g.AlternateTitles, g.Series, g.Developer, g.Publisher, g.Platform,
 			g.Extreme, g.PlayMode, g.Status, g.GameNotes, g.Source, g.LaunchCommand, g.ReleaseDate,
@@ -814,6 +862,414 @@ func (d *mysqlDAL) GetAllSimilarityAttributes(dbs DBSession) ([]*types.Similarit
 			return nil, err
 		}
 		result = append(result, lc)
+	}
+
+	return result, nil
+}
+
+// StoreFlashfreezeRootFile stores flashfreeze root file
+func (d *mysqlDAL) StoreFlashfreezeRootFile(dbs DBSession, s *types.FlashfreezeFile) (int64, error) {
+	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO flashfreeze_file (fk_user_id, original_filename, current_filename, size, created_at, md5sum, sha256sum) 
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		s.UserID, s.OriginalFilename, s.CurrentFilename, s.Size, s.UploadedAt.Unix(), s.MD5Sum, s.SHA256Sum)
+	if err != nil {
+		return 0, err
+	}
+	fid, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return fid, nil
+}
+
+// StoreFlashfreezeDeepFile stores data about indexed flashfreeze uploads
+func (d *mysqlDAL) StoreFlashfreezeDeepFile(dbs DBSession, fid int64, entries []*types.IndexedFileEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	data := make([]interface{}, 0, len(entries)*7)
+	for _, ife := range entries {
+		data = append(data, fid, ife.Name, ife.SizeCompressed, ife.SizeUncompressed, ife.MD5, ife.SHA256, ife.FileUtilOutput)
+	}
+
+	const valuePlaceholder = `(?, ?, ?, ?, ?, ?, ?)`
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(),
+		`INSERT INTO flashfreeze_file_contents (fk_flashfreeze_file_id, filename, size_compressed, size_uncompressed, md5sum, sha256sum, description) VALUES 
+		`+valuePlaceholder+strings.Repeat(`,`+valuePlaceholder, len(entries)-1),
+		data...)
+	return err
+}
+
+// UpdateFlashfreezeRootFileIndexedState marks submission file as deleted
+func (d *mysqlDAL) UpdateFlashfreezeRootFileIndexedState(dbs DBSession, fid int64, indexedAt *time.Time, indexingErrors uint64) error {
+
+	if indexedAt != nil {
+		_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		UPDATE flashfreeze_file SET indexed_at = ?, indexing_errors = ? WHERE id = ?`,
+			indexedAt.Unix(), indexingErrors, fid)
+		return err
+	}
+
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		UPDATE flashfreeze_file SET indexed_at = NULL, indexing_errors = NULL WHERE id = ?`,
+		fid)
+	return err
+}
+
+// GetFlashfreezeRootFile returns flashfreeze root file
+func (d *mysqlDAL) GetFlashfreezeRootFile(dbs DBSession, fid int64) (*types.FlashfreezeFile, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT fk_user_id, original_filename, current_filename, size, created_at, md5sum, sha256sum
+		FROM flashfreeze_file
+		WHERE id = ?`,
+		fid)
+
+	ff := &types.FlashfreezeFile{ID: fid}
+
+	var uploadedAt int64
+
+	err := row.Scan(&ff.UserID, &ff.OriginalFilename, &ff.CurrentFilename, &ff.Size, &uploadedAt, &ff.MD5Sum, &ff.SHA256Sum)
+	if err != nil {
+		return nil, err
+	}
+
+	ff.UploadedAt = time.Unix(uploadedAt, 0)
+
+	return ff, nil
+}
+
+// GetAllFlashfreezeRootFiles returns all flashfreeze root files
+func (d *mysqlDAL) GetAllFlashfreezeRootFiles(dbs DBSession) ([]*types.FlashfreezeFile, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
+		SELECT id, fk_user_id, original_filename, current_filename, size, created_at, md5sum, sha256sum
+		FROM flashfreeze_file`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*types.FlashfreezeFile, 0, 100000)
+	for rows.Next() {
+		var uploadedAt int64
+		ff := &types.FlashfreezeFile{}
+		err := rows.Scan(&ff.ID, &ff.UserID, &ff.OriginalFilename, &ff.CurrentFilename, &ff.Size, &uploadedAt, &ff.MD5Sum, &ff.SHA256Sum)
+		if err != nil {
+			return nil, err
+		}
+
+		ff.UploadedAt = time.Unix(uploadedAt, 0)
+
+		result = append(result, ff)
+	}
+
+	return result, nil
+}
+
+// GetAllUnindexedFlashfreezeRootFiles returns all flashfreeze root files which are not indexed
+func (d *mysqlDAL) GetAllUnindexedFlashfreezeRootFiles(dbs DBSession) ([]*types.FlashfreezeFile, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
+		SELECT id, fk_user_id, original_filename, current_filename, size, created_at, md5sum, sha256sum
+		FROM flashfreeze_file
+		WHERE id NOT IN (
+		    SELECT DISTINCT fk_flashfreeze_file_id 
+		    FROM flashfreeze_file_contents
+		    WHERE current_filename NOT LIKE "%.warc" AND current_filename NOT LIKE "%.warc.gz"
+		    )`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*types.FlashfreezeFile, 0, 100000)
+	for rows.Next() {
+		var uploadedAt int64
+		ff := &types.FlashfreezeFile{}
+		err := rows.Scan(&ff.ID, &ff.UserID, &ff.OriginalFilename, &ff.CurrentFilename, &ff.Size, &uploadedAt, &ff.MD5Sum, &ff.SHA256Sum)
+		if err != nil {
+			return nil, err
+		}
+
+		ff.UploadedAt = time.Unix(uploadedAt, 0)
+
+		result = append(result, ff)
+	}
+
+	return result, nil
+}
+
+// StoreFixFirstStep creates fix entry in DB with basic info
+func (d *mysqlDAL) StoreFixFirstStep(dbs DBSession, uid int64, c *types.CreateFixFirstStep) (int64, error) {
+	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO fixes (fk_user_id, fk_fix_type_id, submit_finished, title, description, created_at) 
+                           VALUES (?, (SELECT id FROM fix_type WHERE fix_type.name=?), false, ?, ?, UNIX_TIMESTAMP())`,
+		uid, c.FixType, c.Title, c.Description)
+	if err != nil {
+		return 0, err
+	}
+	fid, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return fid, nil
+}
+
+// GetFixByID returns a fix
+func (d *mysqlDAL) GetFixByID(dbs DBSession, fid int64) (*types.Fix, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT fk_user_id, (SELECT name FROM fix_type WHERE id=fixes.fk_fix_type_id), submit_finished, title, description, created_at
+		FROM fixes
+		WHERE id = ?`,
+		fid)
+
+	f := &types.Fix{}
+	var createdAt int64
+	if err := row.Scan(&f.AuthorID, &f.FixType, &f.SubmitFinished, &f.Title, &f.Description, &createdAt); err != nil {
+		return nil, err
+	}
+
+	f.CreatedAt = time.Unix(createdAt, 0)
+
+	return f, nil
+}
+
+// StoreFixesFile stores fixes file
+func (d *mysqlDAL) StoreFixesFile(dbs DBSession, s *types.FixesFile) (int64, error) {
+	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO fixes_file (fk_user_id, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		s.UserID, s.FixID, s.OriginalFilename, s.CurrentFilename, s.Size, s.UploadedAt.Unix(), s.MD5Sum, s.SHA256Sum)
+	if err != nil {
+		return 0, err
+	}
+	fid, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return fid, nil
+}
+
+// GetFilesForFix returns all files of a given fix
+func (d *mysqlDAL) GetFilesForFix(dbs DBSession, fid int64) ([]*types.ExtendedFixesFile, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
+		SELECT fixes_file.id, fk_user_id, discord_user.username, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum
+		FROM fixes_file 
+		LEFT JOIN discord_user ON discord_user.id = fk_user_id
+		WHERE fk_fix_id=?`,
+		fid)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*types.ExtendedFixesFile, 0, 2)
+	for rows.Next() {
+		var uploadedAt int64
+		ff := &types.ExtendedFixesFile{}
+		err := rows.Scan(&ff.ID, &ff.UserID, &ff.UploadedBy, &ff.FixID, &ff.OriginalFilename, &ff.CurrentFilename, &ff.Size, &uploadedAt, &ff.MD5Sum, &ff.SHA256Sum)
+		if err != nil {
+			return nil, err
+		}
+
+		ff.UploadedAt = time.Unix(uploadedAt, 0)
+
+		result = append(result, ff)
+	}
+
+	return result, nil
+}
+
+// DeleteUserSessions deletes all sessions of a given user, including inactive sessions
+func (d *mysqlDAL) DeleteUserSessions(dbs DBSession, uid int64) (int64, error) {
+	r, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		DELETE FROM session WHERE uid=?`,
+		uid)
+	if err != nil {
+		return 0, err
+	}
+
+	count, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalCommentsCount returns a total number of comments in the system
+func (d *mysqlDAL) GetTotalCommentsCount(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT COUNT(*) FROM comment`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalUserCount returns a total number of users in the system
+func (d *mysqlDAL) GetTotalUserCount(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT COUNT(*) FROM discord_user`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalFlashfreezeCount returns a total number of indexed flashfreeze files in the system
+func (d *mysqlDAL) GetTotalFlashfreezeCount(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT COUNT(*) FROM flashfreeze_file`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalFlashfreezeFileCount returns a total number of indexed flashfreeze files in the system
+func (d *mysqlDAL) GetTotalFlashfreezeFileCount(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT COUNT(*) FROM flashfreeze_file_contents`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalSubmissionFilesize returns a total size of all uploaded submissions
+func (d *mysqlDAL) GetTotalSubmissionFilesize(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT SUM(size) FROM submission_file`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTotalFlashfreezeFilesize returns a total size of all uploaded flashfreeze items
+func (d *mysqlDAL) GetTotalFlashfreezeFilesize(dbs DBSession) (int64, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
+		SELECT SUM(size) FROM flashfreeze_file`)
+
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetFixesFiles gets fixes files, returns error if input len != output len
+func (d *mysqlDAL) GetFixesFiles(dbs DBSession, ffids []int64) ([]*types.FixesFile, error) {
+	if len(ffids) == 0 {
+		return nil, nil
+	}
+
+	data := make([]interface{}, len(ffids))
+	for i, d := range ffids {
+		data[i] = d
+	}
+
+	q := `
+		SELECT fk_user_id, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum 
+		FROM fixes_file 
+		WHERE id IN(?` + strings.Repeat(",?", len(ffids)-1) + `)
+		AND deleted_at IS NULL
+		ORDER BY created_at DESC`
+
+	var rows *sql.Rows
+	var err error
+	rows, err = dbs.Tx().QueryContext(dbs.Ctx(), q, data...)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*types.FixesFile, 0, len(ffids))
+	for rows.Next() {
+		sf := &types.FixesFile{}
+		var uploadedAt int64
+		err := rows.Scan(&sf.UserID, &sf.FixID, &sf.OriginalFilename, &sf.CurrentFilename, &sf.Size, &uploadedAt, &sf.MD5Sum, &sf.SHA256Sum)
+		if err != nil {
+			return nil, err
+		}
+		sf.UploadedAt = time.Unix(uploadedAt, 0)
+		result = append(result, sf)
+	}
+
+	if len(result) != len(ffids) {
+		return nil, fmt.Errorf("%d files were not found", len(result)-len(ffids))
+	}
+
+	return result, nil
+}
+
+// GetUsers returns all users
+func (d *mysqlDAL) GetUsers(dbs DBSession) ([]*types.User, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `SELECT id, username FROM discord_user`)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*types.User, 0)
+	for rows.Next() {
+		u := &types.User{}
+		var uid int64
+		err := rows.Scan(&uid, &u.Username)
+		if err != nil {
+			return nil, err
+		}
+
+		u.ID = fmt.Sprintf("%d", uid)
+
+		result = append(result, u)
+	}
+
+	return result, nil
+}
+
+// GetCommentsByUserIDAndAction returns comments with an oddly specific filter
+func (d *mysqlDAL) GetCommentsByUserIDAndAction(dbs DBSession, uid int64, action string) ([]*types.Comment, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
+		SELECT id, message, created_at FROM
+		(
+			SELECT id, message, (SELECT name FROM action WHERE id=comment.fk_action_id) as action, created_at 
+			FROM comment 
+			WHERE fk_user_id=? 
+			AND comment.deleted_at IS NULL
+		) as t
+		WHERE action=?
+		ORDER BY created_at DESC;`, uid, action)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]*types.Comment, 0)
+
+	var createdAt int64
+
+	for rows.Next() {
+
+		c := &types.Comment{AuthorID: uid, Action: action}
+		if err := rows.Scan(&c.ID, &c.Message, &createdAt); err != nil {
+			return nil, err
+		}
+		c.CreatedAt = time.Unix(createdAt, 0)
+		result = append(result, c)
 	}
 
 	return result, nil

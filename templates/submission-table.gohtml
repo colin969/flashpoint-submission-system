@@ -1,7 +1,7 @@
 {{define "submission-table"}}
     {{$showLaunchCommand := not ( empty ( default "" .Filter.LaunchCommandFuzzy))}}
     <div id="table-wrapper">
-        <i>tip: use shift+mousewheel to scroll horizontally</i>
+        <i>tip: use shift+mousewheel to scroll horizontally</i><br>
         <div id="table-scroll">
             <table class="pure-table pure-table-striped submissions-table">
                 <thead>
@@ -10,6 +10,7 @@
                                               onclick="controlAllCheckboxes(this, 'submission-checkbox');"/></th>
                     <th class="center">Files</th>
                     <th class="center">View</th>
+                    <th class="center">Type</th>
                     <th>Title</th>
                     <th>18+</th>
                     {{if $showLaunchCommand}}
@@ -23,9 +24,9 @@
                     <th>Size</th>
                     <th>Bot</th>
                     <th class="bgr-assign-testing" title="Assigned for testing">AST</th>
-                    <th class="bgr-assign-verification" title="Assigned for verification">ASV</th>
                     <th class="bgr-request-changes" title="Requested Changes">RC</th>
                     <th class="bgr-approve" title="Approved">AP</th>
+                    <th class="bgr-assign-verification" title="Assigned for verification">ASV</th>
                     <th class="bgr-verify" title="Verified">VE</th>
                     <th class="bgr-mark-added" title="Marked as added to Flashpoint">FP</th>
                     <th>Uploaded at</th>
@@ -56,7 +57,14 @@
                                 <a href="/web/submission/{{.SubmissionID}}">View</a>
                             {{end}}
                         </td>
-                        <td>{{capString 100 .CurationTitle}}</td>
+                        <td>
+                            {{if .GameExists}}
+                                <img class="submission-type-icon" src="/static/icons/svg/puzzle-piece.svg" alt="Content Change">
+                            {{else}}
+                                <img class="submission-type-icon" src="/static/icons/svg/plus.svg" alt="New Submission">
+                            {{end}}
+                        </td>
+                        <td class="submission-table-title">{{capString 100 .CurationTitle}}</td>
                         <td>{{if eq "Yes" (unpointify .CurationExtreme)}}<img src="/static/extreme.png" alt="Extreme"
                                                                               title="Curation is marked as extreme."
                                                                               width="24" height="24">{{end}}
@@ -69,15 +77,16 @@
                         <td>{{if not $isLegacy}}{{capitalizeAscii .SubmissionLevel}}{{end}}</td>
                         <td>{{if not $isLegacy}}{{.SubmitterUsername}}{{end}}</td>
                         <td>{{if not $isLegacy}}{{.UpdaterUsername}}{{end}}</td>
-                        <td title="{{.Size}}B">{{if not $isLegacy}}{{megabytify .Size}}MB{{end}}</td>
+                        <td class="right" title="{{.Size}}B"
+                            {{if not $isLegacy}}id="submission-file-size-{{.FileID}}" data-size="{{.Size}}"{{end}}>
+                            {{if not $isLegacy}}{{sizeToString .Size}}{{end}}
+                        </td>
                         <td>
-                            <div class="center-image dot-{{.BotAction}}" title="{{if (contains "approve" .BotAction)}}The bot approves.{{else}}The bot has requested changes.{{end}}"></div>
+                            <div class="center-image dot-{{.BotAction}}"
+                                 title="{{if (contains "approve" .BotAction)}}The bot approves.{{else}}The bot has requested changes.{{end}}"></div>
                         </td>
                         <td class="center {{if gt (len .AssignedTestingUserIDs) 0}}bgr-assign-testing{{end}}">
                             {{if not $isLegacy}}<b>{{len .AssignedTestingUserIDs}}</b>{{end}}
-                        </td>
-                        <td class="center {{if gt (len .AssignedVerificationUserIDs) 0}}bgr-assign-verification{{end}}">
-                            {{if not $isLegacy}}<b>{{len .AssignedVerificationUserIDs}}</b>{{end}}
                         </td>
                         <td class="center {{if gt (len .RequestedChangesUserIDs) 0}}bgr-request-changes{{end}}">
                             {{if not $isLegacy}}<b>{{len .RequestedChangesUserIDs}}</b>{{end}}
@@ -85,16 +94,19 @@
                         <td class="center {{if gt (len .ApprovedUserIDs) 0}}bgr-approve{{end}}">
                             {{if not $isLegacy}}<b>{{len .ApprovedUserIDs}}</b>{{end}}
                         </td>
+                        <td class="center {{if gt (len .AssignedVerificationUserIDs) 0}}bgr-assign-verification{{end}}">
+                            {{if not $isLegacy}}<b>{{len .AssignedVerificationUserIDs}}</b>{{end}}
+                        </td>
                         <td class="center {{if gt (len .VerifiedUserIDs) 0}}bgr-verify{{end}}">
                             {{if not $isLegacy}}<b>{{len .VerifiedUserIDs}}</b>{{end}}
                         </td>
                         <td>
-                            <div class="center-image dot-{{if (has "mark-added" .DistinctActions)}}mark-added{{else}}comment{{end}}"
-                                 title="{{if (has "mark-added" .DistinctActions)}}Marked as added to Flashpoint.{{else}}Not marked as added to Flashpoint.{{end}}"></div>
+                            <div class="center-image dot-{{if (has "mark-added" .DistinctActions)}}mark-added{{else if (has "reject" .DistinctActions)}}reject{{else}}comment{{end}}"
+                                 title="{{if (has "mark-added" .DistinctActions)}}Marked as added to Flashpoint.{{else if (has "reject" .DistinctActions)}}Rejected.{{else}}Not marked as added to Flashpoint.{{end}}"></div>
                         </td>
                         <td>{{.UploadedAt.Format "2006-01-02 15:04:05 -0700"}}</td>
                         <td>{{.UpdatedAt.Format "2006-01-02 15:04:05 -0700"}}</td>
-                        <td>{{if not $isLegacy}}{{capString 100 .OriginalFilename}}{{end}}</td>
+                        <td class="submission-table-original-filename">{{if not $isLegacy}}{{capString 100 .OriginalFilename}}{{end}}</td>
                     </tr>
                 {{end}}
                 </tbody>

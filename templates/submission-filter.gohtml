@@ -44,6 +44,7 @@
                             {{template "submission-filter-bot-actions" .}}
                             {{template "submission-filter-maturity" .}}
                             {{template "submission-filter-level" .}}
+                            {{template "submission-filter-type" .}}
                         </div>
                     </div>
                     <div class="pure-u-1-2">
@@ -55,7 +56,7 @@
             </fieldset>
             <div class="right">
                 <button type="button" class="pure-button pure-button-primary" id="switch-filter-button"
-                        onclick="switchFilterLayout('advanced')">Swtich to advanced mode
+                        onclick="switchFilterLayout('advanced')">Switch to advanced mode
                 </button>
                 <button type="button" class="pure-button pure-button-primary" id="reset-button"
                         onclick="resetFilterForm()">Reset
@@ -69,7 +70,7 @@
               {{if not (eq "advanced" .FilterLayout)}}hidden{{end}}>
             <input type="hidden" name="filter-layout" value="advanced">
             <div class="pure-g">
-                <div class="pure-u-9-24">
+                <div class="pure-u-8-24">
                     <div class="form-column">
                         <div class="form-column-text">
                             <fieldset>
@@ -87,6 +88,8 @@
                                        value="{{default "" .Filter.SubmitterUsernamePartial}}">
                             </fieldset>
                         </div>
+                        {{template "submission-filter-type" .}}
+
 
                         {{template "submission-filter-level" .}}
                         {{template "submission-filter-bot-actions" .}}
@@ -184,7 +187,12 @@
                                         <input type="checkbox" name="distinct-action" value="mark-added"
                                                id="distinct-action-mark-added"
                                                {{if has "mark-added" .Filter.DistinctActions}}checked{{end}}>
-                                        Mark as Added</label>
+                                        Import into Flashpoint</label>
+                                    <label>
+                                        <input type="checkbox" name="distinct-action" value="reject"
+                                               id="distinct-action-reject"
+                                               {{if has "reject" .Filter.DistinctActions}}checked{{end}}>
+                                        Rejected</label>
                                 </fieldset>
                             </div>
                             <div class="pure-u-1-2">
@@ -211,13 +219,18 @@
                                         <input type="checkbox" name="distinct-action-not" value="mark-added"
                                                id="distinct-action-not-mark-added"
                                                {{if has "mark-added" .Filter.DistinctActionsNot}}checked{{end}}>
-                                        Mark as Added</label>
+                                        Import into Flashpoint</label>
+                                    <label>
+                                        <input type="checkbox" name="distinct-action-not" value="reject"
+                                               id="distinct-action-not-reject"
+                                               {{if has "reject" .Filter.DistinctActionsNot}}checked{{end}}>
+                                        Rejected</label>
                                 </fieldset>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="pure-u-6-24">
+                <div class="pure-u-5-24">
                     <div class="form-column">
                         <fieldset>
                             <legend>Meta and File Filters</legend>
@@ -247,7 +260,7 @@
                         {{template "submission-filter-maturity" .}}
                     </div>
                 </div>
-                <div class="pure-u-9-24">
+                <div class="pure-u-11-24">
                     <div class="form-column">
                         <div class="form-column-text">
                             <fieldset>
@@ -260,39 +273,6 @@
                             </fieldset>
                         </div>
 
-                        <fieldset>
-                            <legend>Filter by Comments After Mine (union)</legend>
-                            <div class="pure-g">
-                                <div class="pure-u-1-2">
-                                    <label for="bot-action">
-                                        <input type="checkbox" name="post-last-action" value="any"
-                                               {{if has "any" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Any</label>
-                                    <label>
-                                        <input type="checkbox" name="post-last-action" value="comment"
-                                               {{if has "comment" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Comment</label>
-                                    <label>
-                                        <input type="checkbox" name="post-last-action" value="approve"
-                                               {{if has "approve" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Approve</label>
-                                </div>
-                                <div class="pure-u-1-2">
-                                    <label>
-                                        <input type="checkbox" name="post-last-action" value="request-changes"
-                                               {{if has "request-changes" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Request Changes</label>
-                                    <label>
-                                        <input type="checkbox" name="post-last-action" value="mark-added"
-                                               {{if has "mark-added" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Mark as Added</label>
-                                    <label>
-                                        <input type="checkbox" name="post-last-action" value="upload-file"
-                                               {{if has "upload-file" .Filter.ActionsAfterMyLastComment}}checked{{end}}>
-                                        Uploaded File</label>
-                                </div>
-                            </div>
-                        </fieldset>
                         <fieldset>
                             <legend>Filter by My Current State</legend>
                             <div class="pure-g">
@@ -307,7 +287,7 @@
                                                value="unassigned"
                                                id="assigned-status-testing-me-verification"
                                                {{if eq "unassigned" (unpointify .Filter.AssignedStatusVerificationMe)}}checked{{end}}>
-                                        Not assigned to me for verification</label>
+                                        Not assigned to me for veri.</label>
                                     <label title="Select submissions where I have no requested changes.">
                                         <input type="radio" name="requested-changes-status-me" value="none"
                                                id="requested-changes-status-me-none"
@@ -336,7 +316,7 @@
                                                value="assigned"
                                                id="assigned-status-verification-me-assigned"
                                                {{if eq "assigned" (unpointify .Filter.AssignedStatusVerificationMe)}}checked{{end}}>
-                                        Assigned to me for verification</label>
+                                        Assigned to me for veri.</label>
                                     <label title="Select submissions where I have ongoing requested changes.">
                                         <input type="radio" name="requested-changes-status-me" value="ongoing"
                                                title="Select submissions where I have ongoing requested changes."
@@ -357,12 +337,74 @@
                             </div>
                         </fieldset>
                         <fieldset>
+                            <legend>Filter by User's Current State</legend>
+                            <label for="submitter-id">User ID</label>
+                            <input type="number" name="assigned-status-user-id" min="1"
+                                   value="{{default "" .Filter.AssignedStatusUserID}}">
+                            <div class="pure-g">
+
+                                <div class="pure-u-1-2">
+                                    <label>
+                                        <input type="radio" name="assigned-status-testing-user" value="unassigned"
+                                               {{if eq "unassigned" (unpointify .Filter.AssignedStatusTestingUser)}}checked{{end}}>
+                                        Not assigned to user for testing</label>
+                                    <label>
+                                        <input type="radio" name="assigned-status-verification-user"
+                                               value="unassigned"
+                                               {{if eq "unassigned" (unpointify .Filter.AssignedStatusVerificationUser)}}checked{{end}}>
+                                        Not assigned to user for veri.</label>
+                                    <label title="Select submissions where user has no requested changes.">
+                                        <input type="radio" name="requested-changes-status-user" value="none"
+                                               title="Select submissions where user has no requested changes."
+                                               {{if eq "none" (unpointify .Filter.RequestedChangedStatusUser)}}checked{{end}}>
+                                        User has not RC</label>
+                                    <label>
+                                        <input type="radio" name="approvals-status-user" value="no"
+                                               {{if eq "no" (unpointify .Filter.ApprovalsStatusUser)}}checked{{end}}>
+                                        User has not approved</label>
+                                    <label>
+                                        <input type="radio" name="verification-status-user" value="no"
+                                               {{if eq "no" (unpointify .Filter.VerificationStatusUser)}}checked{{end}}>
+                                        User has not verified</label>
+                                </div>
+                                <div class="pure-u-1-2">
+                                    <label>
+                                        <input type="radio" name="assigned-status-testing-user" value="assigned"
+                                               {{if eq "assigned" (unpointify .Filter.AssignedStatusTestingUser)}}checked{{end}}>
+                                        Assigned to user for testing</label>
+                                    <label>
+                                        <input type="radio" name="assigned-status-verification-user"
+                                               value="assigned"
+                                               {{if eq "assigned" (unpointify .Filter.AssignedStatusVerificationUser)}}checked{{end}}>
+                                        Assigned to user for veri.</label>
+                                    <label title="Select submissions where user has ongoing requested changes.">
+                                        <input type="radio" name="requested-changes-status-user" value="ongoing"
+                                               title="Select submissions where user has ongoing requested changes."
+                                               {{if eq "ongoing" (unpointify .Filter.RequestedChangedStatusUser)}}checked{{end}}>
+                                        User has RC</label>
+
+                                    <label>
+                                        <input type="radio" name="approvals-status-user" value="yes"
+                                               {{if eq "yes" (unpointify .Filter.ApprovalsStatusUser)}}checked{{end}}>
+                                        User has approved</label>
+                                    <label>
+                                        <input type="radio" name="verification-status-user" value="yes"
+                                               {{if eq "yes" (unpointify .Filter.VerificationStatusUser)}}checked{{end}}>
+                                        User has verified</label>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset>
                             <legend>Filter by my submissions</legend>
-                            <label for="bot-action">
+                            <label>
                                 <input type="checkbox" name="last-uploader-not-me" value="yes"
                                        id="last-uploader-not-me"
                                        {{if eq "yes" (unpointify .Filter.LastUploaderNotMe)}}checked{{end}}>
                                 Exclude my submissions</label>
+                            <label>
+                                <input type="checkbox" name="subscribed-me" value="yes"
+                                       {{if eq "yes" (unpointify .Filter.SubscribedMe)}}checked{{end}}>
+                                I am subscribed</label>
                         </fieldset>
                         <fieldset>
                             <legend>Order Results</legend>
@@ -373,6 +415,11 @@
                                                id="order-by-uploaded"
                                                {{if eq "uploaded" (unpointify .Filter.OrderBy)}}checked{{end}}>
                                         By Uploaded at</label>
+                                    <label for="order-by">
+                                        <input type="radio" name="order-by" value="size"
+                                               id="order-by-size"
+                                               {{if eq "size" (unpointify .Filter.OrderBy)}}checked{{end}}>
+                                        By size</label>
                                     <label for="asc-desc">
                                         <input type="radio" name="asc-desc" value="asc"
                                                id="asc-desc-asc"

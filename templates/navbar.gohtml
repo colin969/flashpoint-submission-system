@@ -7,38 +7,89 @@
                     <ul class="pure-menu-list">
                         {{if not (empty .Username)}}
                             {{if or (isStaff .UserRoles) (or (isTrialCurator .UserRoles) (isInAudit .UserRoles))}}
-                                <li class="pure-menu-item">
-                                    <a href="/web/submit" class="pure-menu-link">Submit</a>
+                                <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                                    <a href="#" class="pure-menu-link">Submissions</a>
+                                    <ul class="pure-menu-children left">
+                                        <li class="pure-menu-item">
+                                            <a href="/web/submit" class="pure-menu-link">Submit</a>
+                                        </li>
+                                        <li class="pure-menu-item">
+                                            <a href="/web/submissions" class="pure-menu-link">Browse</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                                    <a href="#" class="pure-menu-link">Flashfreeze</a>
+                                    <ul class="pure-menu-children left">
+                                        <li class="pure-menu-item">
+                                            <a href="/web/flashfreeze/submit" class="pure-menu-link">Submit</a>
+                                        </li>
+                                        <li class="pure-menu-item">
+                                            <a href="/web/flashfreeze/files?search-files=on" class="pure-menu-link">Browse</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                {{if .IsDevInstance}}
+                                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                                        <a href="#" class="pure-menu-link">Fixes</a>
+                                        <ul class="pure-menu-children left">
+                                            <li class="pure-menu-item">
+                                                <a href="/web/fixes/submit"
+                                                   class="pure-menu-link">Submit</a>
+                                            </li>
+                                            <li class="pure-menu-item">
+                                                <a href="/web/fixes"
+                                                   class="pure-menu-link">Browse</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                {{end}}
+                                <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                                    <a href="#" class="pure-menu-link">Stats</a>
+                                    <ul class="pure-menu-children left">
+                                        <li class="pure-menu-item">
+                                            <a href="/web/statistics" class="pure-menu-link">Site Statistics</a>
+                                        </li>
+                                        <li class="pure-menu-item">
+                                            <a href="/web/user-statistics" class="pure-menu-link">User Statistics</a>
+                                        </li>
+                                        <li class="pure-menu-item">
+                                            <a href="/web/metadata-stats" class="pure-menu-link">Metadata Statistics</a>
+                                        </li>
+                                    </ul>
                                 </li>
                             {{end}}
                         {{end}}
-                        {{if isStaff .UserRoles}}
-                            <li class="pure-menu-item">
-                                <a href="/web/submissions" class="pure-menu-link">Browse Submissions</a>
-                            </li>
-                        {{end}}
+
                     </ul>
                 </div>
             </div>
             <div class="pure-u-1-2">
                 <div class="pure-menu pure-menu-horizontal right">
                     <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
-                        <a href="#" id="menuLink1" class="pure-menu-link">Useful Links</a>
+                        <a href="#" class="pure-menu-link">Useful Links</a>
                         <ul class="pure-menu-children left">
                             <li class="pure-menu-item">
-                                <a href="https://bluemaxima.org/flashpoint/" class="pure-menu-link">Flashpoint Site</a>
+                                <a href="https://bluemaxima.org/flashpoint/" class="pure-menu-link" target="_blank">Flashpoint
+                                    Site</a>
                             </li>
                             <li class="pure-menu-item">
-                                <a href="https://bluemaxima.org/flashpoint/datahub/Tags" class="pure-menu-link">List of Tags</a>
+                                <a href="https://bluemaxima.org/flashpoint/datahub/Tags" class="pure-menu-link"
+                                   target="_blank">List of
+                                    Tags</a>
                             </li>
                             <li class="pure-menu-item">
-                                <a href="https://bluemaxima.org/flashpoint/datahub/Not_Accepted_Curations" class="pure-menu-link">Not accepted curations</a>
+                                <a href="https://bluemaxima.org/flashpoint/datahub/Not_Accepted_Curations"
+                                   class="pure-menu-link" target="_blank">Not accepted curations</a>
                             </li>
                             <li class="pure-menu-item">
-                                <a href="https://nul.sh/misc/flashpoint/" class="pure-menu-link">Flashpoint Browser</a>
+                                <a href="https://nul.sh/misc/flashpoint/" class="pure-menu-link" target="_blank">Flashpoint
+                                    Browser</a>
                             </li>
                             <li class="pure-menu-item">
-                                <a href="https://bluemaxima.org/flashpoint/datahub/Main_Page" class="pure-menu-link">Flashpoint Wiki</a>
+                                <a href="https://bluemaxima.org/flashpoint/datahub/Main_Page" class="pure-menu-link"
+                                   target="_blank">Flashpoint
+                                    Wiki</a>
                             </li>
                         </ul>
                     </li>
@@ -47,21 +98,30 @@
                     </li>
                     {{if not (empty .Username)}}
                         <ul class="pure-menu-list">
-                            {{if or (isGod .UserRoles)}}
-                                <li class="pure-menu-item">
-                                    <a href="/web/internal" class="pure-menu-link">God Tools</a>
-                                </li>
-                            {{end}}
                             {{if or (isStaff .UserRoles) (or (isTrialCurator .UserRoles) (isInAudit .UserRoles))}}
                                 <li class="pure-menu-item">
                                     <a href="/web/my-submissions" class="pure-menu-link">My Submissions</a>
                                 </li>
                             {{end}}
                             <li class="pure-menu-item">
-                                <a href="/web/profile" class="pure-menu-link">Profile</a>
+                                <a id="lights" href="#" class="pure-menu-link" onclick="enableDarkMode();">Lights
+                                    off</a>
                             </li>
-                            <li class="pure-menu-item">
-                                <a href="/api/logout" class="pure-menu-link">Log out</a>
+                            <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                                <a href="#" class="pure-menu-link">Menu</a>
+                                <ul class="pure-menu-children left">
+                                    <li class="pure-menu-item">
+                                        <a href="/web/profile" class="pure-menu-link">Profile</a>
+                                    </li>
+                                    {{if or (isGod .UserRoles)}}
+                                        <li class="pure-menu-item">
+                                            <a href="/web/internal" class="pure-menu-link">God Tools</a>
+                                        </li>
+                                    {{end}}
+                                    <li class="pure-menu-item">
+                                        <a href="/api/logout" class="pure-menu-link">Log out</a>
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
                     {{else}}

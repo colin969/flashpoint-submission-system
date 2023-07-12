@@ -30,7 +30,7 @@ func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Reques
 	}
 	sf := sfs[0]
 
-	f, err := os.Open(fmt.Sprintf("%s/%s", constants.SubmissionsDir, sf.CurrentFilename))
+	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.SubmissionsDirFullPath, sf.CurrentFilename))
 
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -69,7 +69,7 @@ func (a *App) HandleDownloadSubmissionBatch(w http.ResponseWriter, r *http.Reque
 	filePaths := make([]string, 0, len(sfs))
 
 	for _, sf := range sfs {
-		filePaths = append(filePaths, fmt.Sprintf("%s/%s", constants.SubmissionsDir, sf.CurrentFilename))
+		filePaths = append(filePaths, fmt.Sprintf("%s/%s", a.Conf.SubmissionsDirFullPath, sf.CurrentFilename))
 	}
 
 	filename := fmt.Sprintf("fpfss-batch-%dfiles-%s.tar", len(sfs), utils.NewRealRandomStringProvider().RandomString(16))
@@ -100,7 +100,7 @@ func (a *App) HandleDownloadCurationImage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	f, err := os.Open(fmt.Sprintf("%s/%s", constants.SubmissionImagesDir, ci.Filename))
+	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.SubmissionImagesDirFullPath, ci.Filename))
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("failed to read file", http.StatusInternalServerError))
@@ -117,4 +117,76 @@ func (a *App) HandleDownloadCurationImage(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "image")
 	http.ServeContent(w, r, ci.Filename, fi.ModTime(), f)
+}
+
+func (a *App) HandleDownloadFlashfreezeRootFile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	fileID := params[constants.ResourceKeyFlashfreezeRootFileID]
+
+	fid, err := strconv.ParseInt(fileID, 10, 64)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("invalid root file id", http.StatusBadRequest))
+		return
+	}
+
+	ci, err := a.Service.GetFlashfreezeRootFile(ctx, fid)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.FlashfreezeDirFullPath, ci.CurrentFilename))
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("failed to read file", http.StatusInternalServerError))
+		return
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("failed to read file", http.StatusInternalServerError))
+		return
+	}
+	defer f.Close()
+
+	filename := fmt.Sprintf("flashfreeze-%d-%s", fid, ci.CurrentFilename)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeContent(w, r, filename, fi.ModTime(), f)
+}
+
+func (a *App) HandleDownloadFixesFile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	fixFileID := params[constants.ResourceKeyFixFileID]
+
+	ffid, err := strconv.ParseInt(fixFileID, 10, 64)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("invalid fixes file id", http.StatusBadRequest))
+		return
+	}
+
+	ffs, err := a.Service.GetFixesFiles(ctx, []int64{ffid})
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+	ff := ffs[0]
+
+	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.FixesDirFullPath, ff.CurrentFilename))
+
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("failed to read file", http.StatusInternalServerError))
+		return
+	}
+	defer f.Close()
+
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", ff.CurrentFilename))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeContent(w, r, ff.CurrentFilename, ff.UploadedAt, f)
 }

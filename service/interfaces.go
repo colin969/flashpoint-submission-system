@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
-	"github.com/Dri0m/flashpoint-submission-system/types"
+	"io"
 	"mime/multipart"
 	"time"
+
+	"github.com/Dri0m/flashpoint-submission-system/types"
 )
 
 type Validator interface {
-	Validate(ctx context.Context, filePath string) (*types.ValidatorResponse, error)
+	Validate(ctx context.Context, file io.Reader, filename string) (*types.ValidatorResponse, error)
 	GetTags(ctx context.Context) ([]types.Tag, error)
+	ProvideArchiveForValidation(filePath string) (*types.ValidatorResponse, error)
+	ProvideArchiveForRepacking(filePath string) (*types.ValidatorRepackResponse, error)
 }
 
 type MultipartFileProvider interface {

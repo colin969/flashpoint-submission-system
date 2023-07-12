@@ -6,6 +6,7 @@ import (
 	"github.com/Dri0m/flashpoint-submission-system/database"
 	"github.com/Dri0m/flashpoint-submission-system/types"
 	"github.com/stretchr/testify/mock"
+	"io"
 	"mime/multipart"
 	"time"
 )
@@ -275,8 +276,8 @@ type mockValidator struct {
 	mock.Mock
 }
 
-func (m *mockValidator) Validate(_ context.Context, filePath string) (*types.ValidatorResponse, error) {
-	args := m.Called(filePath)
+func (m *mockValidator) Validate(_ context.Context, file io.Reader, filename, filepath string) (*types.ValidatorResponse, error) {
+	args := m.Called(file, filename, filepath)
 	return args.Get(0).(*types.ValidatorResponse), args.Error(1)
 }
 
@@ -344,3 +345,21 @@ func (m *mockAuthTokenProvider) CreateAuthToken(userID int64) (*authToken, error
 }
 
 ////////////////////////////////////////////////
+
+type fakeMultipartFile struct{}
+
+func (fmp *fakeMultipartFile) Read(p []byte) (n int, err error) {
+	return 0, io.EOF
+}
+
+func (fmp *fakeMultipartFile) ReadAt(p []byte, off int64) (n int, err error) {
+	return 0, io.EOF
+}
+
+func (fmp *fakeMultipartFile) Seek(offset int64, whence int) (int64, error) {
+	return 0, io.EOF
+}
+
+func (fmp *fakeMultipartFile) Close() error {
+	return nil
+}
