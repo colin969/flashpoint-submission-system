@@ -243,7 +243,7 @@ func (a *App) UserOwnsResource(r *http.Request, uid int64, resourceKey string) (
 
 	} else if resourceKey == constants.ResourceKeySubmissionIDs {
 		params := mux.Vars(r)
-		submissionIDs := strings.Split(params["submission-ids"], ",")
+		submissionIDs := strings.Split(params[constants.ResourceKeySubmissionIDs], ",")
 		sids := make([]int64, 0, len(submissionIDs))
 
 		for _, submissionID := range submissionIDs {
@@ -274,8 +274,8 @@ func (a *App) UserOwnsResource(r *http.Request, uid int64, resourceKey string) (
 
 	} else if resourceKey == constants.ResourceKeyFileID {
 		params := mux.Vars(r)
-		submissionID := params[constants.ResourceKeyFileID]
-		fid, err := strconv.ParseInt(submissionID, 10, 64)
+		fileID := params[constants.ResourceKeyFileID]
+		fid, err := strconv.ParseInt(fileID, 10, 64)
 		if err != nil {
 			return false, nil
 		}
@@ -369,6 +369,95 @@ func (a *App) UserCanCommentAction(r *http.Request, uid int64) (bool, error) {
 	return canComment || isAdder || isDecider, nil
 }
 
+// IsResourceFrozen accepts resource that is frozen, or if any of them is when multiple are given
+func (a *App) IsResourceFrozen(r *http.Request, uid int64, resourceKey string) (bool, error) {
+	ctx := r.Context()
+
+	searchSubmissionBySID := func(sid int64) func() (interface{}, error) {
+		return func() (interface{}, error) {
+			s, _, err := a.Service.SearchSubmissions(ctx, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+			return s, err
+		}
+	}
+
+	getSubmissionFileByFID := func(fid int64) func() (interface{}, error) {
+		return func() (interface{}, error) {
+			return a.Service.GetSubmissionFiles(ctx, []int64{fid})
+		}
+	}
+
+	if resourceKey == constants.ResourceKeySubmissionID {
+		params := mux.Vars(r)
+		submissionID := params[constants.ResourceKeySubmissionID]
+		sid, err := strconv.ParseInt(submissionID, 10, 64)
+		if err != nil {
+			return false, fmt.Errorf("invalid submission id")
+		}
+
+		submissions, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("searchSubmissionBySID-%d", sid), searchSubmissionBySID(sid))
+		if err != nil {
+			return false, err
+		}
+		utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission by submission id")
+
+		if len(submissions.([]*types.ExtendedSubmission)) == 0 {
+			return false, fmt.Errorf("submission with id %d not found", sid)
+		}
+
+		s := submissions.([]*types.ExtendedSubmission)[0]
+		return s.IsFrozen, nil
+
+	} else if resourceKey == constants.ResourceKeyFileIDs {
+		params := mux.Vars(r)
+		fileIDs := strings.Split(params[constants.ResourceKeyFileIDs], ",")
+		fids := make([]int64, 0, len(fileIDs))
+
+		for _, fileID := range fileIDs {
+			fid, err := strconv.ParseInt(fileID, 10, 64)
+			if err != nil {
+				return false, fmt.Errorf("invalid file id")
+			}
+			fids = append(fids, fid)
+		}
+
+		for _, fid := range fids {
+			submissionFile, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("getSubmissionFileByFID-%d", fid), getSubmissionFileByFID(fid))
+			if err != nil {
+				return false, err
+			}
+			utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission file by submission file id")
+
+			if len(submissionFile.([]*types.SubmissionFile)) == 0 {
+				return false, fmt.Errorf("submission file with id %d not found", fid)
+			}
+
+			file := submissionFile.([]*types.SubmissionFile)[0]
+			sid := file.SubmissionID
+
+			submissions, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("searchSubmissionBySID-%d", sid), searchSubmissionBySID(sid))
+			if err != nil {
+				return false, err
+			}
+			utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission by submission id")
+
+			if len(submissions.([]*types.ExtendedSubmission)) == 0 {
+				return false, fmt.Errorf("submission with id %d not found", sid)
+			}
+
+			s := submissions.([]*types.ExtendedSubmission)[0]
+
+			if s.IsFrozen {
+				return s.IsFrozen, nil
+			}
+		}
+
+	} else {
+		return false, fmt.Errorf("invalid resource")
+	}
+
+	return false, nil
+}
+
 func muxAny(authorizers ...func(*http.Request, int64) (bool, error)) func(*http.Request, int64) (bool, error) {
 	return func(r *http.Request, uid int64) (bool, error) {
 		for _, authorizer := range authorizers {
@@ -402,5 +491,12 @@ func muxAll(authorizers ...func(*http.Request, int64) (bool, error)) func(*http.
 			return false, nil
 		}
 		return true, nil
+	}
+}
+
+func muxNot(authorizer func(*http.Request, int64) (bool, error)) func(*http.Request, int64) (bool, error) {
+	return func(r *http.Request, uid int64) (bool, error) {
+		ok, err := authorizer(r, uid)
+		return !ok, err
 	}
 }

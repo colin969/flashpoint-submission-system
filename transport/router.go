@@ -51,6 +51,12 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	userHasNoSubmissions := func(r *http.Request, uid int64) (bool, error) {
 		return a.IsUserWithinResourceLimit(r, uid, constants.ResourceKeySubmissionID, 1)
 	}
+	isSubmissionFrozen := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsResourceFrozen(r, uid, constants.ResourceKeySubmissionID)
+	}
+	isAnySubmissionFileFrozen := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsResourceFrozen(r, uid, constants.ResourceKeyFileIDs)
+	}
 
 	// static file server
 	router.PathPrefix("/static/").Handler(
@@ -521,14 +527,24 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		fmt.Sprintf("/data/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
 			a.HandleDownloadSubmissionFile,
-			muxAny(isStaff, isTrialCurator, isInAudit))))).
+			muxAny(
+				muxAll(muxNot(isSubmissionFrozen), isStaff),
+				muxAll(muxNot(isSubmissionFrozen), isTrialCurator),
+				muxAll(muxNot(isSubmissionFrozen), isInAudit),
+				muxAll(isSubmissionFrozen, isFreezer, muxAny(isStaff, isTrialCurator, isInAudit)),
+			))))).
 		Methods("GET")
 
 	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission-file-batch/{%s}", constants.ResourceKeyFileIDs),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
-			a.HandleDownloadSubmissionBatch, muxAny(isStaff, isTrialCurator, isInAudit))))).
+			a.HandleDownloadSubmissionBatch, muxAny(
+				muxAll(muxNot(isAnySubmissionFileFrozen), isStaff),
+				muxAll(muxNot(isAnySubmissionFileFrozen), isTrialCurator),
+				muxAll(muxNot(isAnySubmissionFileFrozen), isInAudit),
+				muxAll(isAnySubmissionFileFrozen, isFreezer, muxAny(isStaff, isTrialCurator, isInAudit)),
+			))))).
 		Methods("GET")
 
 	// TODO add permission handling for frozen submission
@@ -536,7 +552,12 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		fmt.Sprintf("/data/submission/{%s}/curation-image/{%s}.png", constants.ResourceKeySubmissionID, constants.ResourceKeyCurationImageID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
 			a.HandleDownloadCurationImage,
-			muxAny(isStaff, isTrialCurator, isInAudit))))).
+			muxAny(
+				muxAll(muxNot(isSubmissionFrozen), isStaff),
+				muxAll(muxNot(isSubmissionFrozen), isTrialCurator),
+				muxAll(muxNot(isSubmissionFrozen), isInAudit),
+				muxAll(isSubmissionFrozen, isFreezer, muxAny(isStaff, isTrialCurator, isInAudit)),
+			))))).
 		Methods("GET")
 
 	router.Handle(
