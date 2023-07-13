@@ -591,6 +591,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
+	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
@@ -598,12 +599,14 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			muxAny(isStaff, isTrialCurator, isInAudit))))).
 		Methods("GET")
 
+	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission-file-batch/{%s}", constants.ResourceKeyFileIDs),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
 			a.HandleDownloadSubmissionBatch, muxAny(isStaff, isTrialCurator, isInAudit))))).
 		Methods("GET")
 
+	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/curation-image/{%s}.png", constants.ResourceKeySubmissionID, constants.ResourceKeyCurationImageID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
