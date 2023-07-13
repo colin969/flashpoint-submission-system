@@ -975,7 +975,13 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	}
 	defer dbs.Rollback()
 
-	msg := fmt.Sprintf("Approval override by user %d", uid)
+	discordUser, err := s.dal.GetDiscordUser(dbs, uid)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	msg := fmt.Sprintf("Approval override by user %s (%d)", discordUser.Username, uid)
 
 	c := &types.Comment{
 		AuthorID:     constants.ValidatorID,
