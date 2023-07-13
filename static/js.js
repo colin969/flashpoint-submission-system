@@ -497,11 +497,6 @@ function linkIDsInComments() {
     }
 }
 
-function submitUUID(type) {
-    let uuid = document.getElementById("uuid-input").value
-    window.location.href = "/web/fixes/submit/" + uuid + "/" + type
-}
-
 function enableDarkMode() {
     document.getElementsByTagName("head")[0].insertAdjacentHTML(
         "beforeend",

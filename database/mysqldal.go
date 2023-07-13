@@ -998,86 +998,6 @@ func (d *mysqlDAL) GetAllUnindexedFlashfreezeRootFiles(dbs DBSession) ([]*types.
 	return result, nil
 }
 
-// StoreFixFirstStep creates fix entry in DB with basic info
-func (d *mysqlDAL) StoreFixFirstStep(dbs DBSession, uid int64, c *types.CreateFixFirstStep) (int64, error) {
-	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO fixes (fk_user_id, fk_fix_type_id, submit_finished, title, description, created_at) 
-                           VALUES (?, (SELECT id FROM fix_type WHERE fix_type.name=?), false, ?, ?, UNIX_TIMESTAMP())`,
-		uid, c.FixType, c.Title, c.Description)
-	if err != nil {
-		return 0, err
-	}
-	fid, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return fid, nil
-}
-
-// GetFixByID returns a fix
-func (d *mysqlDAL) GetFixByID(dbs DBSession, fid int64) (*types.Fix, error) {
-	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `
-		SELECT fk_user_id, (SELECT name FROM fix_type WHERE id=fixes.fk_fix_type_id), submit_finished, title, description, created_at
-		FROM fixes
-		WHERE id = ?`,
-		fid)
-
-	f := &types.Fix{}
-	var createdAt int64
-	if err := row.Scan(&f.AuthorID, &f.FixType, &f.SubmitFinished, &f.Title, &f.Description, &createdAt); err != nil {
-		return nil, err
-	}
-
-	f.CreatedAt = time.Unix(createdAt, 0)
-
-	return f, nil
-}
-
-// StoreFixesFile stores fixes file
-func (d *mysqlDAL) StoreFixesFile(dbs DBSession, s *types.FixesFile) (int64, error) {
-	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO fixes_file (fk_user_id, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		s.UserID, s.FixID, s.OriginalFilename, s.CurrentFilename, s.Size, s.UploadedAt.Unix(), s.MD5Sum, s.SHA256Sum)
-	if err != nil {
-		return 0, err
-	}
-	fid, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return fid, nil
-}
-
-// GetFilesForFix returns all files of a given fix
-func (d *mysqlDAL) GetFilesForFix(dbs DBSession, fid int64) ([]*types.ExtendedFixesFile, error) {
-	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `
-		SELECT fixes_file.id, fk_user_id, discord_user.username, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum
-		FROM fixes_file 
-		LEFT JOIN discord_user ON discord_user.id = fk_user_id
-		WHERE fk_fix_id=?`,
-		fid)
-	if err != nil {
-		return nil, err
-	}
-
-	var result = make([]*types.ExtendedFixesFile, 0, 2)
-	for rows.Next() {
-		var uploadedAt int64
-		ff := &types.ExtendedFixesFile{}
-		err := rows.Scan(&ff.ID, &ff.UserID, &ff.UploadedBy, &ff.FixID, &ff.OriginalFilename, &ff.CurrentFilename, &ff.Size, &uploadedAt, &ff.MD5Sum, &ff.SHA256Sum)
-		if err != nil {
-			return nil, err
-		}
-
-		ff.UploadedAt = time.Unix(uploadedAt, 0)
-
-		result = append(result, ff)
-	}
-
-	return result, nil
-}
-
 // DeleteUserSessions deletes all sessions of a given user, including inactive sessions
 func (d *mysqlDAL) DeleteUserSessions(dbs DBSession, uid int64) (int64, error) {
 	r, err := dbs.Tx().ExecContext(dbs.Ctx(), `
@@ -1171,50 +1091,6 @@ func (d *mysqlDAL) GetTotalFlashfreezeFilesize(dbs DBSession) (int64, error) {
 	}
 
 	return count, nil
-}
-
-// GetFixesFiles gets fixes files, returns error if input len != output len
-func (d *mysqlDAL) GetFixesFiles(dbs DBSession, ffids []int64) ([]*types.FixesFile, error) {
-	if len(ffids) == 0 {
-		return nil, nil
-	}
-
-	data := make([]interface{}, len(ffids))
-	for i, d := range ffids {
-		data[i] = d
-	}
-
-	q := `
-		SELECT fk_user_id, fk_fix_id, original_filename, current_filename, size, created_at, md5sum, sha256sum 
-		FROM fixes_file 
-		WHERE id IN(?` + strings.Repeat(",?", len(ffids)-1) + `)
-		AND deleted_at IS NULL
-		ORDER BY created_at DESC`
-
-	var rows *sql.Rows
-	var err error
-	rows, err = dbs.Tx().QueryContext(dbs.Ctx(), q, data...)
-	if err != nil {
-		return nil, err
-	}
-
-	var result = make([]*types.FixesFile, 0, len(ffids))
-	for rows.Next() {
-		sf := &types.FixesFile{}
-		var uploadedAt int64
-		err := rows.Scan(&sf.UserID, &sf.FixID, &sf.OriginalFilename, &sf.CurrentFilename, &sf.Size, &uploadedAt, &sf.MD5Sum, &sf.SHA256Sum)
-		if err != nil {
-			return nil, err
-		}
-		sf.UploadedAt = time.Unix(uploadedAt, 0)
-		result = append(result, sf)
-	}
-
-	if len(result) != len(ffids) {
-		return nil, fmt.Errorf("%d files were not found", len(result)-len(ffids))
-	}
-
-	return result, nil
 }
 
 // GetUsers returns all users
