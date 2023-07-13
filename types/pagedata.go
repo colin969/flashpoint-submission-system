@@ -139,23 +139,6 @@ type StatisticsPageData struct {
 	TotalFlashfreezeSize        int64
 }
 
-type SubmitFixesFilesPageData struct {
-	BasePageData
-	FixID int64
-}
-
-type SearchFixesPageData struct {
-	BasePageData
-	Fixes      []*ExtendedFixesItem
-	TotalCount int64
-	Filter     FixesFilter
-}
-
-type ViewFixPageData struct {
-	SearchFixesPageData
-	FixesFiles []*ExtendedFixesFile
-}
-
 type UserStatisticsPageData struct {
 	BasePageData
 	Users []*UserStatistics

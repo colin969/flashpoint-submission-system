@@ -147,7 +147,6 @@ type SiteService struct {
 	resumableUploadService    *resumableuploadservice.ResumableUploadService
 	archiveIndexerServerURL   string
 	flashfreezeIngestDir      string
-	fixesDir                  string
 	SSK                       SubmissionStatusKeeper
 	DataPacksIndexer          ZipIndexer
 }
@@ -155,7 +154,7 @@ type SiteService struct {
 func New(l *logrus.Entry, db *sql.DB, pgdb *pgxpool.Pool, authBotSession, notificationBotSession *discordgo.Session,
 	flashpointServerID, notificationChannelID, curationFeedChannelID, validatorServerURL string,
 	sessionExpirationSeconds int64, submissionsDir, submissionImagesDir, flashfreezeDir string, isDev bool,
-	rsu *resumableuploadservice.ResumableUploadService, archiveIndexerServerURL, flashfreezeIngestDir, fixesDir string,
+	rsu *resumableuploadservice.ResumableUploadService, archiveIndexerServerURL, flashfreezeIngestDir,
 	dataPacksDir string) *SiteService {
 
 	return &SiteService{
@@ -178,7 +177,6 @@ func New(l *logrus.Entry, db *sql.DB, pgdb *pgxpool.Pool, authBotSession, notifi
 		resumableUploadService:    rsu,
 		archiveIndexerServerURL:   archiveIndexerServerURL,
 		flashfreezeIngestDir:      flashfreezeIngestDir,
-		fixesDir:                  fixesDir,
 		SSK: SubmissionStatusKeeper{
 			m: make(map[string]*types.SubmissionStatus),
 		},
@@ -975,7 +973,13 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	}
 	defer dbs.Rollback()
 
-	msg := fmt.Sprintf("Approval override by user %d", uid)
+	discordUser, err := s.dal.GetDiscordUser(dbs, uid)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	msg := fmt.Sprintf("Approval override by user %s (%d)", discordUser.Username, uid)
 
 	c := &types.Comment{
 		AuthorID:     constants.ValidatorID,
@@ -1249,28 +1253,6 @@ func (s *SiteService) UpdateSubscriptionSettings(ctx context.Context, uid, sid i
 	}
 
 	return nil
-}
-
-func (s *SiteService) CreateFixFirstStep(ctx context.Context, uid int64, c *types.CreateFixFirstStep) (int64, error) {
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return 0, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	fid, err := s.dal.StoreFixFirstStep(dbs, uid, c)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return 0, dberr(err)
-	}
-
-	if err := dbs.Commit(); err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return 0, dberr(err)
-	}
-
-	return fid, nil
 }
 
 func (s *SiteService) GetCurationImage(ctx context.Context, ciid int64) (*types.CurationImage, error) {
@@ -2112,22 +2094,6 @@ func (s *SiteService) IndexUnindexedFlashfreezeItems(l *logrus.Entry) {
 	}
 }
 
-func (s *SiteService) GetFixByID(ctx context.Context, fid int64) (*types.Fix, error) {
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	f, err := s.dal.GetFixByID(dbs, fid)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	return f, nil
-}
-
 func (s *SiteService) DeleteUserSessions(ctx context.Context, uid int64) (int64, error) {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
@@ -2746,202 +2712,6 @@ func (s *SiteService) GetUserStatistics(ctx context.Context, uid int64) (*types.
 	return us, nil
 }
 
-func (s *SiteService) processReceivedResumableFixesFile(ctx context.Context, uid int64, fixID int64, resumableParams *types.ResumableParams) (*int64, error) {
-	var destinationFilename *string
-
-	cleanup := func() {
-		if destinationFilename != nil {
-			utils.LogCtx(ctx).Debugf("cleaning up file '%s'...", *destinationFilename)
-			if err := os.Remove(*destinationFilename); err != nil {
-				utils.LogCtx(ctx).Error(err)
-			}
-		}
-	}
-
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	ru := newResumableUpload(uid, resumableParams.ResumableIdentifier, resumableParams.ResumableTotalChunks, s.resumableUploadService)
-	fid, err := s.processReceivedFixesItem(ctx, dbs, uid, fixID, ru, resumableParams.ResumableFilename, resumableParams.ResumableTotalSize)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := dbs.Commit(); err != nil {
-		utils.LogCtx(ctx).Error(err)
-		cleanup()
-		return nil, dberr(err)
-	}
-
-	utils.LogCtx(ctx).WithField("amount", 1).Debug("fixes items received")
-
-	return fid, nil
-}
-
-func (s *SiteService) processReceivedFixesItem(ctx context.Context, dbs database.DBSession, uid int64, fixID int64, fileReadCloserProvider resumableuploadservice.ReadCloserInformerProvider, filename string, filesize int64) (*int64, error) {
-	utils.LogCtx(ctx).Debugf("received a file '%s' - %d bytes", filename, filesize)
-
-	if err := os.MkdirAll(s.fixesDir, os.ModeDir); err != nil {
-		return nil, err
-	}
-
-	var destinationFilename string
-	var destinationFilePath string
-
-	for {
-		destinationFilename = s.randomStringProvider.RandomString(64) + filepath.Ext(filename)
-		destinationFilePath = fmt.Sprintf("%s/%s", s.fixesDir, destinationFilename)
-		if !utils.FileExists(destinationFilePath) {
-			break
-		}
-	}
-
-	var err error
-
-	readCloser, err := fileReadCloserProvider.GetReadCloserInformer()
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, err
-	}
-	defer readCloser.Close()
-
-	destination, err := os.Create(destinationFilePath)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, err
-	}
-	defer destination.Close()
-
-	utils.LogCtx(ctx).Debugf("copying fixes file to '%s'...", destinationFilePath)
-
-	md5sum := md5.New()
-	sha256sum := sha256.New()
-	multiWriter := io.MultiWriter(destination, sha256sum, md5sum)
-
-	nBytes, err := io.Copy(multiWriter, readCloser)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, err
-	}
-	if nBytes != filesize {
-		err := fmt.Errorf("incorrect number of bytes copied to destination")
-		utils.LogCtx(ctx).Error(err)
-		return nil, err
-	}
-
-	ff := &types.FixesFile{
-		UserID:           uid,
-		FixID:            fixID,
-		OriginalFilename: filename,
-		CurrentFilename:  destinationFilename,
-		Size:             filesize,
-		UploadedAt:       s.clock.Now(),
-		MD5Sum:           hex.EncodeToString(md5sum.Sum(nil)),
-		SHA256Sum:        hex.EncodeToString(sha256sum.Sum(nil)),
-	}
-
-	fid, err := s.dal.StoreFixesFile(dbs, ff)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-
-	return &fid, nil
-}
-
-func (s *SiteService) GetSearchFixesData(ctx context.Context, filter *types.FixesFilter) (*types.SearchFixesPageData, error) {
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	bpd, err := s.GetBasePageData(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	fixes, count, err := s.dal.SearchFixes(dbs, filter)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-
-	pageData := &types.SearchFixesPageData{
-		BasePageData: *bpd,
-		Fixes:        fixes,
-		TotalCount:   count,
-		Filter:       *filter,
-	}
-
-	return pageData, nil
-}
-
-func (s *SiteService) GetViewFixPageData(ctx context.Context, fid int64) (*types.ViewFixPageData, error) {
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	bpd, err := s.GetBasePageData(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := &types.FixesFilter{
-		FixIDs: []int64{fid},
-	}
-
-	fixes, _, err := s.dal.SearchFixes(dbs, filter)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-
-	files, err := s.dal.GetFilesForFix(dbs, fid)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-
-	if len(fixes) == 0 {
-		return nil, perr("fix not found", http.StatusNotFound)
-	}
-
-	pageData := &types.ViewFixPageData{
-		SearchFixesPageData: types.SearchFixesPageData{
-			BasePageData: *bpd,
-			Fixes:        fixes,
-		},
-		FixesFiles: files,
-	}
-
-	return pageData, nil
-}
-
-func (s *SiteService) GetFixesFiles(ctx context.Context, ffids []int64) ([]*types.FixesFile, error) {
-	dbs, err := s.dal.NewSession(ctx)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	defer dbs.Rollback()
-
-	ffs, err := s.dal.GetFixesFiles(dbs, ffids)
-	if err != nil {
-		utils.LogCtx(ctx).Error(err)
-		return nil, dberr(err)
-	}
-	return ffs, nil
-}
-
 func (s *SiteService) DeveloperTagDescFromValidator(ctx context.Context) error {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
@@ -3267,4 +3037,80 @@ func RemoveRepackFolder(ctx context.Context, filePath string) {
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 	}
+}
+
+func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
+	uid := utils.UserID(ctx)
+
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	authorID := submissions[0].SubmitterID
+
+	if err := s.dal.FreezeSubmission(dbs, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := s.createFreezeNotification(dbs, authorID, uid, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	s.announceNotification()
+
+	return nil
+}
+
+func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
+	uid := utils.UserID(ctx)
+
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	authorID := submissions[0].SubmitterID
+
+	if err := s.dal.UnfreezeSubmission(dbs, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := s.createUnfreezeNotification(dbs, authorID, uid, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	s.announceNotification()
+
+	return nil
 }

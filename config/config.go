@@ -40,7 +40,6 @@ type Config struct {
 	FlashfreezeDirFullPath       string
 	ArchiveIndexerServerURL      string
 	FlashfreezeIngestDirFullPath string
-	FixesDirFullPath             string
 	SubmissionsDirFullPath       string
 	SubmissionImagesDirFullPath  string
 	SystemUid                    int64
@@ -127,7 +126,6 @@ func GetConfig(l *logrus.Entry) *Config {
 		FlashfreezeDirFullPath:       EnvString("FLASHFREEZE_DIR_FULL_PATH"),
 		ArchiveIndexerServerURL:      EnvString("ARCHIVE_INDEXER_SERVER_URL"),
 		FlashfreezeIngestDirFullPath: EnvString("FLASHFREEZE_INGEST_DIR_FULL_PATH"),
-		FixesDirFullPath:             EnvString("FIXES_DIR_FULL_PATH"),
 		SubmissionsDirFullPath:       EnvString("SUBMISSIONS_DIR_FULL_PATH"),
 		SubmissionImagesDirFullPath:  EnvString("SUBMISSION_IMAGES_DIR_FULL_PATH"),
 		SystemUid:                    EnvInt("SYSTEM_UID"),

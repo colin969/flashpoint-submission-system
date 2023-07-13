@@ -57,7 +57,7 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 		Service: service.New(l, db, pgdb, authBotSession, notificationBotSession, conf.FlashpointServerID,
 			conf.NotificationChannelID, conf.CurationFeedChannelID, conf.ValidatorServerURL, conf.SessionExpirationSeconds,
 			conf.SubmissionsDirFullPath, conf.SubmissionImagesDirFullPath, conf.FlashfreezeDirFullPath, conf.IsDev,
-			rsu, conf.ArchiveIndexerServerURL, conf.FlashfreezeIngestDirFullPath, conf.FixesDirFullPath,
+			rsu, conf.ArchiveIndexerServerURL, conf.FlashfreezeIngestDirFullPath,
 			conf.DataPacksDir),
 		decoder:             decoder,
 		authMiddlewareCache: memoize.NewMemoizer(5*time.Second, 60*time.Minute),

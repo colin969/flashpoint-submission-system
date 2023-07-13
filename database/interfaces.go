@@ -123,13 +123,6 @@ type DAL interface {
 	GetAllFlashfreezeRootFiles(dbs DBSession) ([]*types.FlashfreezeFile, error)
 	GetAllUnindexedFlashfreezeRootFiles(dbs DBSession) ([]*types.FlashfreezeFile, error)
 
-	StoreFixFirstStep(dbs DBSession, uid int64, c *types.CreateFixFirstStep) (int64, error)
-	GetFixByID(dbs DBSession, fid int64) (*types.Fix, error)
-	StoreFixesFile(dbs DBSession, s *types.FixesFile) (int64, error)
-	SearchFixes(dbs DBSession, filter *types.FixesFilter) ([]*types.ExtendedFixesItem, int64, error)
-	GetFilesForFix(dbs DBSession, fid int64) ([]*types.ExtendedFixesFile, error)
-	GetFixesFiles(dbs DBSession, ffids []int64) ([]*types.FixesFile, error)
-
 	DeleteUserSessions(dbs DBSession, uid int64) (int64, error)
 
 	GetTotalCommentsCount(dbs DBSession) (int64, error)
@@ -143,6 +136,9 @@ type DAL interface {
 	GetCommentsByUserIDAndAction(dbs DBSession, uid int64, action string) ([]*types.Comment, error)
 
 	PopulateRevisionInfo(dbs DBSession, revisions []*types.RevisionInfo) error
+
+	FreezeSubmission(dbs DBSession, sid int64) error
+	UnfreezeSubmission(dbs DBSession, sid int64) error
 }
 
 type DBSession interface {

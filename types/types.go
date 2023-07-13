@@ -135,6 +135,7 @@ type ExtendedSubmission struct {
 	VerifiedUserIDs             []int64
 	DistinctActions             []string
 	GameExists                  bool
+	IsFrozen                    bool
 }
 
 type SubmissionsFilter struct {
@@ -327,38 +328,6 @@ type UpdateNotificationSettings struct {
 
 type UpdateSubscriptionSettings struct {
 	Subscribe bool `schema:"subscribe"`
-}
-
-type CreateFixFirstStep struct {
-	FixType     string  `schema:"fix-type"`
-	Title       string  `schema:"title"`
-	Description string  `schema:"description"`
-	GameUUID    *string `schema:"game-uuid"`
-}
-
-func (c *CreateFixFirstStep) Validate() error {
-	unzeroNilPointers(c)
-
-	if len(c.Title) < 2 {
-		return fmt.Errorf("title must be at least 2 characters long")
-	}
-
-	if len(c.Description) < 2 {
-		return fmt.Errorf("description must be at least 2 characters long")
-	}
-
-	return nil
-}
-
-type Fix struct {
-	ID             int64
-	AuthorID       int64
-	FixType        string
-	SubmitFinished bool
-	Title          string
-	Description    string
-	GameUUID       *string
-	CreatedAt      time.Time
 }
 
 type Notification struct {
@@ -791,93 +760,6 @@ func (ff *FlashfreezeFilter) Validate() error {
 
 type DeleteUserSessionsRequest struct {
 	DiscordID int64 `schema:"discord-user-id"`
-}
-
-type FixesFile struct {
-	ID               int64
-	UserID           int64
-	FixID            int64
-	OriginalFilename string
-	CurrentFilename  string
-	Size             int64
-	UploadedAt       time.Time
-	MD5Sum           string
-	SHA256Sum        string
-}
-
-type ExtendedFixesFile struct {
-	ID               int64
-	UserID           int64
-	UploadedBy       string
-	FixID            int64
-	OriginalFilename string
-	CurrentFilename  string
-	Size             int64
-	UploadedAt       time.Time
-	MD5Sum           string
-	SHA256Sum        string
-}
-
-type FixesFilter struct {
-	FixIDs      []int64 `schema:"fix-id"`
-	SubmitterID *int64  `schema:"submitter-id"`
-
-	SubmitterUsernamePartial *string `schema:"submitter-username-partial"`
-
-	ResultsPerPage *int64 `schema:"results-per-page"`
-	Page           *int64 `schema:"page"`
-}
-
-func (ff *FixesFilter) Validate() error {
-
-	v := reflect.ValueOf(ff).Elem() // fucking schema zeroing out my nil pointers
-	t := reflect.TypeOf(ff).Elem()
-	for i := 0; i < v.NumField(); i++ {
-		if t.Field(i).Type.Kind() == reflect.Ptr {
-			f := v.Field(i)
-			e := f.Elem()
-			if e.Kind() == reflect.Int64 && e.Int() == 0 {
-				f.Set(reflect.Zero(f.Type()))
-			}
-			if e.Kind() == reflect.String && e.String() == "" {
-				f.Set(reflect.Zero(f.Type()))
-			}
-		}
-	}
-
-	if ff.SubmitterID != nil && *ff.SubmitterID < 1 {
-		if *ff.SubmitterID == 0 {
-			ff.SubmitterID = nil
-		} else {
-			return fmt.Errorf("submitter id must be >= 1")
-		}
-	}
-
-	if ff.ResultsPerPage != nil && *ff.ResultsPerPage < 1 {
-		if *ff.ResultsPerPage == 0 {
-			ff.ResultsPerPage = nil
-		} else {
-			return fmt.Errorf("results per page must be >= 1")
-		}
-	}
-	if ff.Page != nil && *ff.Page < 1 {
-		if *ff.Page == 0 {
-			ff.Page = nil
-		} else {
-			return fmt.Errorf("page must be >= 1")
-		}
-	}
-
-	return nil
-}
-
-type ExtendedFixesItem struct {
-	FixID             int64
-	Title             string
-	Description       string
-	SubmitterID       int64
-	SubmitterUsername string
-	UploadedAt        *time.Time
 }
 
 type GameContentPatch struct {
