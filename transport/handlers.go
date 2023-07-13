@@ -1640,3 +1640,43 @@ func isElementExist(s []string, str string) bool {
 	}
 	return false
 }
+
+func (a *App) HandleFreezeSubmission(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	submissionID := params[constants.ResourceKeySubmissionID]
+
+	sid, err := strconv.ParseInt(submissionID, 10, 64)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("invalid submission id", http.StatusBadRequest))
+		return
+	}
+
+	if err := a.Service.FreezeSubmission(ctx, sid); err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, nil, http.StatusNoContent)
+}
+
+func (a *App) HandleUnfreezeSubmission(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	submissionID := params[constants.ResourceKeySubmissionID]
+
+	sid, err := strconv.ParseInt(submissionID, 10, 64)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("invalid submission id", http.StatusBadRequest))
+		return
+	}
+
+	if err := a.Service.UnfreezeSubmission(ctx, sid); err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, nil, http.StatusNoContent)
+}

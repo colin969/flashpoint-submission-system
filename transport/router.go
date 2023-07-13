@@ -22,6 +22,9 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	isDeleter := func(r *http.Request, uid int64) (bool, error) {
 		return a.UserHasAnyRole(r, uid, constants.DeleterRoles())
 	}
+	isFreezer := func(r *http.Request, uid int64) (bool, error) {
+		return a.UserHasAnyRole(r, uid, constants.FreezerRoles())
+	}
 	isInAudit := func(r *http.Request, uid int64) (bool, error) {
 		s, err := a.UserHasAnyRole(r, uid, constants.StaffRoles())
 		if err != nil {
@@ -647,6 +650,20 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		fmt.Sprintf("/api/submission/{%s}/override", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
 			a.HandleOverrideBot, muxAny(isDeleter, isStaff))))).
+		Methods("POST")
+
+	// freeze
+
+	router.Handle(
+		fmt.Sprintf("/api/submission/{%s}/freeze", constants.ResourceKeySubmissionID),
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.HandleFreezeSubmission, muxAll(isFreezer))))).
+		Methods("POST")
+
+	router.Handle(
+		fmt.Sprintf("/api/submission/{%s}/unfreeze", constants.ResourceKeySubmissionID),
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.HandleUnfreezeSubmission, muxAll(isFreezer))))).
 		Methods("POST")
 
 	// user statistics

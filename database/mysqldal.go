@@ -1274,3 +1274,29 @@ func (d *mysqlDAL) GetCommentsByUserIDAndAction(dbs DBSession, uid int64, action
 
 	return result, nil
 }
+
+// FreezeSubmission marks submission as frozen
+func (d *mysqlDAL) FreezeSubmission(dbs DBSession, sid int64) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		UPDATE submission SET frozen_at = UNIX_TIMESTAMP()
+		WHERE id = ?`,
+		sid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UnfreezeSubmission removes freeze from a submission
+func (d *mysqlDAL) UnfreezeSubmission(dbs DBSession, sid int64) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		UPDATE submission SET frozen_at = NULL
+		WHERE id = ?`,
+		sid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -49,6 +49,13 @@ func DeleterRoles() []string {
 	}
 }
 
+func FreezerRoles() []string {
+	return []string{
+		RoleAdministrator,
+		RoleModerator,
+	}
+}
+
 func DeciderRoles() []string {
 	return []string{
 		RoleCurator,

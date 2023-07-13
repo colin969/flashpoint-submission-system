@@ -143,6 +143,9 @@ type DAL interface {
 	GetCommentsByUserIDAndAction(dbs DBSession, uid int64, action string) ([]*types.Comment, error)
 
 	PopulateRevisionInfo(dbs DBSession, revisions []*types.RevisionInfo) error
+
+	FreezeSubmission(dbs DBSession, sid int64) error
+	UnfreezeSubmission(dbs DBSession, sid int64) error
 }
 
 type DBSession interface {

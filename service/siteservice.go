@@ -3268,3 +3268,79 @@ func RemoveRepackFolder(ctx context.Context, filePath string) {
 		utils.LogCtx(ctx).Error(err)
 	}
 }
+
+func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
+	uid := utils.UserID(ctx)
+
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	authorID := submissions[0].SubmitterID
+
+	if err := s.dal.FreezeSubmission(dbs, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := s.createFreezeNotification(dbs, authorID, uid, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	s.announceNotification()
+
+	return nil
+}
+
+func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
+	uid := utils.UserID(ctx)
+
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	authorID := submissions[0].SubmitterID
+
+	if err := s.dal.UnfreezeSubmission(dbs, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := s.createUnfreezeNotification(dbs, authorID, uid, sid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	s.announceNotification()
+
+	return nil
+}

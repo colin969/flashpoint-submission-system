@@ -384,3 +384,39 @@ func (s *SiteService) ProduceRemindersAboutRequestedChanges(ctx context.Context)
 
 	return len(authors), nil
 }
+
+// createFreezeNotification formats and stores freeze notification
+func (s *SiteService) createFreezeNotification(dbs database.DBSession, authorID, deleterID int64, sid int64) error {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("You've got mail! <@%d>\n", authorID))
+	b.WriteString(fmt.Sprintf("<https://fpfss.unstable.life/web/submission/%d>\n", sid))
+	b.WriteString(fmt.Sprintf("Your submission #%d was frozen by <@%d>\n", sid, deleterID))
+
+	b.WriteString("\n----------------------------------------------------------\n")
+	msg := b.String()
+
+	if err := s.dal.StoreNotification(dbs, msg, constants.NotificationDefault); err != nil {
+		utils.LogCtx(dbs.Ctx()).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
+
+// createUnfreezeNotification formats and stores freeze notification
+func (s *SiteService) createUnfreezeNotification(dbs database.DBSession, authorID, deleterID int64, sid int64) error {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("You've got mail! <@%d>\n", authorID))
+	b.WriteString(fmt.Sprintf("<https://fpfss.unstable.life/web/submission/%d>\n", sid))
+	b.WriteString(fmt.Sprintf("Your submission #%d was unfrozen by <@%d>\n", sid, deleterID))
+
+	b.WriteString("\n----------------------------------------------------------\n")
+	msg := b.String()
+
+	if err := s.dal.StoreNotification(dbs, msg, constants.NotificationDefault); err != nil {
+		utils.LogCtx(dbs.Ctx()).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
