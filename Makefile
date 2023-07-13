@@ -2,7 +2,7 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-.PHONY: db migrate run
+.PHONY: db migrate run validator
 
 db:
 	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml down
