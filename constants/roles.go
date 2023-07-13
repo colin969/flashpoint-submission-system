@@ -112,6 +112,11 @@ func IsDeleter(roles []string) bool {
 	return HasAnyRole(roles, DeleterRoles())
 }
 
+// IsFreezer allows users to freeze things
+func IsFreezer(roles []string) bool {
+	return HasAnyRole(roles, FreezerRoles())
+}
+
 // IsDecider allows user to decide the state of submissions (approve, request changes, accept, reject)
 func IsDecider(roles []string) bool {
 	return HasAnyRole(roles, DeciderRoles())

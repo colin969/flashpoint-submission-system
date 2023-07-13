@@ -1,8 +1,10 @@
 {{define "main"}}
     {{$canDelete := isDeleter .UserRoles}}
+    {{$canFreeze := isFreezer .UserRoles}}
     {{$canViewSubmissionsOfOthers := not (or (isInAudit .UserRoles) (isTrialCurator .UserRoles))}}
     {{$submissionID := (index .Submissions 0).SubmissionID}}
     {{$isExtreme := eq "Yes" (unpointify .CurationMeta.Extreme)}}
+    {{$isFrozen := (index .Submissions 0).IsFrozen}}
     {{$UserCanModify := or (isStaff .UserRoles) (eq .UserID (index .Submissions 0).SubmitterID)}}
     <script type="text/javascript">
         function showExtremeImages() {
@@ -49,6 +51,22 @@
                        href="/web/submission/{{(index .Submissions 0).SubmissionID}}/files">
                         Browse submission versions
                     </a>
+                {{end}}
+
+                <br>
+
+                {{if $canFreeze}}
+                    {{if $isFrozen}}
+                        <h3>Unfreeze submission</h3>
+                        <button class="pure-button button-freeze"
+                                onclick="unfreezeSubmission({{$submissionID}})">Unfreeze
+                        </button>
+                    {{else}}
+                        <h3>Freeze submission</h3>
+                        <button class="pure-button button-freeze"
+                                onclick="freezeSubmission({{$submissionID}})">Freeze
+                        </button>
+                    {{end}}
                 {{end}}
             </div>
             {{if $UserCanModify}}

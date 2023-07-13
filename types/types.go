@@ -135,6 +135,7 @@ type ExtendedSubmission struct {
 	VerifiedUserIDs             []int64
 	DistinctActions             []string
 	GameExists                  bool
+	IsFrozen                    bool
 }
 
 type SubmissionsFilter struct {

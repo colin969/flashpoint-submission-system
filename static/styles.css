@@ -163,7 +163,8 @@ textarea {
 .button-system,
 .button-unassign-verification,
 .button-pause,
-.button-cancel {
+.button-cancel,
+.button-freeze {
     color: white;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
@@ -226,7 +227,8 @@ textarea {
 
 .bgr-reject,
 .dot-reject,
-.button-reject {
+.button-reject,
+.button-freeze {
     background: var(--reject) !important;
 }
 

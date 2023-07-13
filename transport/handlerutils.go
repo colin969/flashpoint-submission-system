@@ -35,6 +35,7 @@ func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *htt
 		"isStaff":                       constants.IsStaff,
 		"isTrialCurator":                constants.IsTrialCurator,
 		"isDeleter":                     constants.IsDeleter,
+		"isFreezer":                     constants.IsFreezer,
 		"isDecider":                     constants.IsDecider,
 		"isAdder":                       constants.IsAdder,
 		"isInAudit":                     constants.IsInAudit,

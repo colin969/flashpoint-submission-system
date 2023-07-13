@@ -249,21 +249,35 @@ function sizeToString(bytes, decimals = 1) {
 async function deleteSubmissionFile(sid, sfid) {
     await sendXHR(`/api/submission/${sid}/file/${sfid}`, "DELETE", null, true,
         "Failed to delete submission file.",
-        "Submission file deleted successfully.",
+        null,
         "Please provide a reason to delete this submission file:")
 }
 
 async function deleteSubmission(sid) {
     await sendXHR(`/api/submission/${sid}`, "DELETE", null, true,
         "Failed to delete submission.",
-        "Submission deleted successfully.",
+        null,
         "Please provide a reason to delete this submission and all its related data:")
+}
+
+async function freezeSubmission(sid) {
+    await sendXHR(`/api/submission/${sid}/freeze`, "POST", null, true,
+        "Failed to freeze submission.",
+        null,
+        null)
+}
+
+async function unfreezeSubmission(sid) {
+    await sendXHR(`/api/submission/${sid}/unfreeze`, "POST", null, true,
+        "Failed to unfreeze submission.",
+        null,
+        null)
 }
 
 async function overrideBot(sid) {
     await sendXHR(`/api/submission/${sid}/override`, "POST", null, true,
         "Failed to override bot decision.",
-        "Override successful.",
+        null,
         null)
 }
 
