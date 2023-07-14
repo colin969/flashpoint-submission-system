@@ -1,0 +1,1 @@
+ALTER TABLE submission ADD frozen_at BIGINT DEFAULT NULL;

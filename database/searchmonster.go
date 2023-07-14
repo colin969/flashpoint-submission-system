@@ -307,6 +307,14 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			data = append(data, *filter.UpdatedByID)
 			masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
 		}
+		if filter.IsContentChange != nil {
+			if *filter.IsContentChange == "yes" {
+				filters = append(filters, "(meta.game_exists = true)")
+			} else {
+				filters = append(filters, "(meta.game_exists = false)")
+			}
+
+		}
 	}
 
 	and := ""
@@ -352,7 +360,9 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 		submission_cache.active_requested_changes_ids AS active_requested_changes_ids,
 		submission_cache.active_approved_ids AS active_approved_ids,
 		submission_cache.active_verified_ids AS active_verified_ids,
-		submission_cache.distinct_actions AS distinct_actions
+		submission_cache.distinct_actions AS distinct_actions,
+		meta.game_exists AS meta_game_exists,
+		submission.frozen_at as frozen_at
 		FROM submission
 		LEFT JOIN submission_cache ON submission_cache.fk_submission_id = submission.id
 		LEFT JOIN submission_file AS oldest_file ON oldest_file.id = submission_cache.fk_oldest_file_id
@@ -400,7 +410,9 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			(SELECT "") AS active_requested_changes_ids,
 			(SELECT "") AS active_approved_ids,
 			(SELECT "") AS active_verified_ids,
-			(SELECT "mark-added") AS distinct_actions
+			(SELECT "mark-added") AS distinct_actions,
+			(SELECT TRUE) as meta_game_exists,
+			(SELECT NULL) as frozen_at
 			FROM masterdb_game
 			WHERE (SELECT 1) ` + masterAnd + strings.Join(masterFilters, " AND ") + `
 		ORDER BY ` + currentOrderBy + ` ` + currentSortOrder + `
@@ -444,6 +456,7 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 	var approvedUserIDs *string
 	var verifiedUserIDs *string
 	var distinctActions *string
+	var frozenAt *int64
 
 	for rows.Next() {
 		s := &types.ExtendedSubmission{}
@@ -458,13 +471,16 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			&s.BotAction,
 			&s.FileCount,
 			&assignedTestingUserIDs, &assignedVerificationUserIDs, &requestedChangesUserIDs, &approvedUserIDs, &verifiedUserIDs,
-			&distinctActions); err != nil {
+			&distinctActions, &s.GameExists, &frozenAt); err != nil {
 			return nil, 0, err
 		}
 		s.SubmitterAvatarURL = utils.FormatAvatarURL(s.SubmitterID, submitterAvatar)
 		s.UpdaterAvatarURL = utils.FormatAvatarURL(s.UpdaterID, updaterAvatar)
 		s.UploadedAt = time.Unix(uploadedAt, 0)
 		s.UpdatedAt = time.Unix(updatedAt, 0)
+		if frozenAt != nil {
+			s.IsFrozen = true
+		}
 
 		s.AssignedTestingUserIDs = []int64{}
 		if assignedTestingUserIDs != nil && len(*assignedTestingUserIDs) > 0 {
@@ -863,131 +879,6 @@ func (d *mysqlDAL) SearchFlashfreezeFiles(dbs DBSession, filter *types.Flashfree
 		if indexingTime != nil {
 			t := time.Duration(*indexingTime) * time.Second
 			f.IndexingTime = &t
-		}
-
-		result = append(result, f)
-	}
-
-	rows.Close()
-	wg.Wait()
-
-	return result, counter, nil
-}
-
-// SearchFixes returns extended fixes based on given filter
-func (d *mysqlDAL) SearchFixes(dbs DBSession, filter *types.FixesFilter) ([]*types.ExtendedFixesItem, int64, error) {
-	filters := make([]string, 0)
-	data := make([]interface{}, 0)
-
-	const defaultLimit int64 = 100
-	const defaultOffset int64 = 0
-
-	currentLimit := defaultLimit
-	currentOffset := defaultOffset
-
-	filtersFulltext := make([]string, 0)
-	dataFulltext := make([]interface{}, 0)
-
-	if filter != nil {
-		if len(filter.FixIDs) > 0 {
-			filters = append(filters, `(fix_id IN(?`+strings.Repeat(`,?`, len(filter.FixIDs)-1)+`))`)
-			for _, sid := range filter.FixIDs {
-				data = append(data, sid)
-			}
-		}
-		if filter.SubmitterID != nil {
-			filters = append(filters, "(uploader_id = ?)")
-			data = append(data, *filter.SubmitterID)
-		}
-		if filter.SubmitterUsernamePartial != nil {
-			tableName := `uploader_username`
-			entryTableName := `uploader_username`
-			filters, _, data, _ = addMultifilter(
-				tableName, &entryTableName, *filter.SubmitterUsernamePartial, filters, nil, data, nil)
-		}
-
-		if filter.ResultsPerPage != nil {
-			currentLimit = *filter.ResultsPerPage
-		} else {
-			currentLimit = defaultLimit
-		}
-		if filter.Page != nil {
-			currentOffset = (*filter.Page - 1) * currentLimit
-		} else {
-			currentOffset = defaultOffset
-		}
-	}
-
-	finalData := make([]interface{}, 0)
-	finalQuery := `
-		SELECT 
-			fix_id,
-		    title,
-		    description,
-		    uploader_id,
-		    uploader_username,
-		    uploaded_at
-		FROM (
-		SELECT 
-       		fixes.id AS fix_id,
-		    fixes.title AS title,
-		    fixes.description AS description,
-			fixes.fk_user_id AS uploader_id,
-			uploader.username AS uploader_username,
-			fixes.created_at AS uploaded_at
-		FROM fixes
-			LEFT JOIN discord_user AS uploader ON uploader.id = fixes.fk_user_id `
-
-	fulltextQuery := `WHERE fixes.deleted_at IS NULL ` + magicAnd(filtersFulltext) + strings.Join(filtersFulltext, " AND ") + ` ORDER BY uploaded_at DESC) AS root`
-	finalQuery += fulltextQuery
-	finalData = append(finalData, dataFulltext...)
-
-	selector := ` WHERE 1=1 ` + magicAnd(filters) + strings.Join(filters, " AND ") + ` GROUP BY fix_id `
-	finalQuery += selector
-
-	rest := `
-		LIMIT ? OFFSET ?
-		`
-
-	unlimitedQuery := finalQuery
-	finalQuery += rest
-
-	finalData = append(finalData, data...)
-	unlimitedData := finalData
-	finalData = append(finalData, currentLimit, currentOffset)
-
-	countingQuery := `SELECT COUNT(*) FROM ( ` + unlimitedQuery + ` ) AS counterino`
-	var counter int64
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		row := d.db.QueryRowContext(dbs.Ctx(), countingQuery, unlimitedData...)
-		if err := row.Scan(&counter); err != nil {
-			counter = -1
-			return
-		}
-	}()
-
-	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), finalQuery, finalData...)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer rows.Close()
-
-	result := make([]*types.ExtendedFixesItem, 0)
-
-	var uploadedAt *int64
-
-	for rows.Next() {
-		f := &types.ExtendedFixesItem{}
-		if err := rows.Scan(&f.FixID, &f.Title, &f.Description, &f.SubmitterID, &f.SubmitterUsername, &uploadedAt); err != nil {
-			return nil, 0, err
-		}
-
-		if uploadedAt != nil {
-			t := time.Unix(*uploadedAt, 0)
-			f.UploadedAt = &t
 		}
 
 		result = append(result, f)

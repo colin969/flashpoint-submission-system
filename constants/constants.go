@@ -70,10 +70,14 @@ const (
 	ResourceKeyCommentID             = "comment-id"
 	ResourceKeyCurationImageID       = "curation-image-id"
 	ResourceKeyFlashfreezeRootFileID = "flashfreeze-root-file-id"
-	ResourceKeyFixID                 = "fix-id"
-	ResourceKeyFixFileID             = "fix-file-id"
 	ResourceKeyUserID                = "user-id"
 	ResourceKeyTempName              = "temp-name"
+	ResourceKeyTagID                 = "tag-id"
+	ResourceKeyGameID                = "game-id"
+	ResourceKeyGameRevision          = "revision-date"
+	ResourceKeyGameDataDate          = "game-data-date"
+	ResourceKeyReason                = "reason"
+	ResourceKeyHash                  = "hash"
 )
 
 const (
@@ -100,3 +104,11 @@ const (
 	SubmissionStatusFinalizing = "finalizing"
 	SubmissionStatusSuccess    = "success"
 )
+
+func GetValidDeleteReasons() []string {
+	return []string{"Duplicate", "Owner Request", "Still On Sale", "Blacklisted Content"}
+}
+
+func GetValidRestoreReasons() []string {
+	return []string{"Wrong Delete Reason", "Taken Off Sale", "Removed From Blacklist"}
+}
