@@ -234,7 +234,8 @@ textarea {
 }
 
 .button-freeze,
-.dot-freeze {
+.dot-freeze,
+.bgr-freeze {
     background: var(--freeze) !important;
 }
 
