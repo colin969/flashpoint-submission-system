@@ -180,6 +180,7 @@ type SubmissionsFilter struct {
 	IsContentChange                *string  `schema:"is-content-change"`
 	ExcludeLegacy                  bool
 	UpdatedByID                    *int64
+	IsFrozen                       *string `schema:"is-frozen"`
 }
 
 func unzeroNilPointers(x interface{}) {
