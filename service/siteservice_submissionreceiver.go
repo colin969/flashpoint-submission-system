@@ -174,7 +174,7 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 				return err
 			}
 		} else {
-			utils.LogCtx(ctx).Debug("removing redunant comment...")
+			utils.LogCtx(ctx).Debug("removing redundant comment...")
 			// Make sure it's at least set to nothing
 			msgStr := ""
 			msg = &msgStr
@@ -442,7 +442,7 @@ func (s *SiteService) convertValidatorResponseToComment(vr *types.ValidatorRespo
 		message += fmt.Sprintf("🚫 %s\n", e)
 	}
 	for _, w := range vr.CurationWarnings {
-		message += fmt.Sprintf("🚫 %s\n", w)
+		message += fmt.Sprintf("⚠️ %s\n", w)
 	}
 
 	c.Message = &message

@@ -29,6 +29,7 @@
                     <th class="bgr-assign-verification" title="Assigned for verification">ASV</th>
                     <th class="bgr-verify" title="Verified">VE</th>
                     <th class="bgr-mark-added" title="Marked as added to Flashpoint">FP</th>
+                    <th class="bgr-freeze" title="Frozen">F</th>
                     <th>Uploaded at</th>
                     <th>Updated at</th>
                     <th>Original Filename</th>
@@ -103,6 +104,10 @@
                         <td>
                             <div class="center-image dot-{{if (has "mark-added" .DistinctActions)}}mark-added{{else if (has "reject" .DistinctActions)}}reject{{else}}comment{{end}}"
                                  title="{{if (has "mark-added" .DistinctActions)}}Marked as added to Flashpoint.{{else if (has "reject" .DistinctActions)}}Rejected.{{else}}Not marked as added to Flashpoint.{{end}}"></div>
+                        </td>
+                        <td>
+                            <div class="center-image dot-{{if .IsFrozen}}freeze{{else}}comment{{end}}"
+                                 title="{{if .IsFrozen}}Frozen.{{else}}Not frozen.{{end}}"></div>
                         </td>
                         <td>{{.UploadedAt.Format "2006-01-02 15:04:05 -0700"}}</td>
                         <td>{{.UpdatedAt.Format "2006-01-02 15:04:05 -0700"}}</td>
