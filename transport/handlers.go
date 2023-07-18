@@ -92,7 +92,8 @@ func (a *App) HandleCommentReceiverBatch(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := a.Service.ReceiveComments(ctx, uid, sids, formAction, formMessage, formIgnoreDupeActions, a.Conf.SubmissionsDirFullPath, a.Conf.DataPacksDir, a.Conf.ImagesDir, r); err != nil {
+	if err := a.Service.ReceiveComments(ctx, uid, sids, formAction, formMessage, formIgnoreDupeActions,
+		a.Conf.SubmissionsDirFullPath, a.Conf.DataPacksDir, a.Conf.FrozenPacksDir, a.Conf.ImagesDir, r); err != nil {
 		writeError(ctx, w, err)
 		return
 	}
@@ -686,7 +687,8 @@ func (a *App) HandleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.Service.DeleteGame(ctx, gameId, reason, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir, a.Conf.DeletedDataPacksDir)
+	err := a.Service.DeleteGame(ctx, gameId, reason, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir,
+		a.Conf.DeletedDataPacksDir, a.Conf.FrozenPacksDir)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
@@ -710,7 +712,8 @@ func (a *App) HandleRestoreGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.Service.RestoreGame(ctx, gameId, reason, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir, a.Conf.DeletedDataPacksDir)
+	err := a.Service.RestoreGame(ctx, gameId, reason, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir,
+		a.Conf.DeletedDataPacksDir, a.Conf.FrozenPacksDir)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
@@ -756,6 +759,44 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func (a *App) HandleFreezeGame(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+	params := mux.Vars(r)
+	gameId := params[constants.ResourceKeyGameID]
+
+	dataPacksPath := a.Conf.DataPacksDir
+	frozenPacksPath := a.Conf.FrozenPacksDir
+	deletedPacksPath := a.Conf.DeletedDataPacksDir
+
+	err := a.Service.FreezeGame(ctx, gameId, uid, dataPacksPath, frozenPacksPath, deletedPacksPath)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, gameId, http.StatusOK)
+}
+
+func (a *App) HandleUnfreezeGame(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+	params := mux.Vars(r)
+	gameId := params[constants.ResourceKeyGameID]
+
+	dataPacksPath := a.Conf.DataPacksDir
+	frozenPacksPath := a.Conf.FrozenPacksDir
+	deletedPacksPath := a.Conf.DeletedDataPacksDir
+
+	err := a.Service.UnfreezeGame(ctx, gameId, uid, dataPacksPath, frozenPacksPath, deletedPacksPath)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, gameId, http.StatusOK)
 }
 
 func (a *App) HandleSubmissionsPage(w http.ResponseWriter, r *http.Request) {

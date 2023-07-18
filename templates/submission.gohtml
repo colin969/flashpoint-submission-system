@@ -60,7 +60,7 @@
 
                     <br>
 
-                    {{if $canFreeze}}
+                    {{if and (not .CurationMeta.GameExists) ($canFreeze)}}
                         {{if $isFrozen}}
                             <h3>Unfreeze submission</h3>
                             <button class="pure-button button-freeze"

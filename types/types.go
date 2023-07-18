@@ -458,6 +458,7 @@ type Game struct {
 	Data            []*GameData      `json:"data,omitempty"`
 	Action          string           `json:"action"`
 	Reason          string           `json:"reason"`
+	ArchiveState    ArchiveState     `json:"archive_state"`
 	Deleted         bool
 	UserID          int64
 }
@@ -897,4 +898,24 @@ type RevisionInfo struct {
 	AvatarURL string
 	AuthorID  int64
 	Username  string
+}
+
+type ArchiveState int8
+
+const (
+	NotArchived ArchiveState = iota
+	Archived
+	Available
+)
+
+func (as ArchiveState) String() string {
+	switch as {
+	case NotArchived:
+		return "Not Archived"
+	case Archived:
+		return "Archived"
+	case Available:
+		return "Available"
+	}
+	return "Unknown"
 }

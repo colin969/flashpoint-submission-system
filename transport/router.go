@@ -36,11 +36,16 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		}
 		return !(s || t), nil
 	}
-	isGod := func(r *http.Request, uid int64) (bool, error) {
-		return a.UserHasAnyRole(r, uid, constants.GodRoles())
-	}
 	isColin := func(r *http.Request, uid int64) (bool, error) {
 		return uid == 689080719460663414, nil
+	}
+	isGod := func(r *http.Request, uid int64) (bool, error) {
+		s, err := isColin(r, uid)
+		if err != nil || s == true {
+			return s, err
+		} else {
+			return a.UserHasAnyRole(r, uid, constants.GodRoles())
+		}
 	}
 	userOwnsSubmission := func(r *http.Request, uid int64) (bool, error) {
 		return a.UserOwnsResource(r, uid, constants.ResourceKeySubmissionID)
@@ -303,6 +308,22 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/screenshot", constants.ResourceKeyGameID),
+		http.HandlerFunc(a.RequestJSON(f))).
+		Methods("POST")
+
+	f = a.UserAuthMux(
+		a.HandleFreezeGame, muxAny(isDeleter))
+
+	router.Handle(
+		fmt.Sprintf("/api/game/{%s}/freeze", constants.ResourceKeyGameID),
+		http.HandlerFunc(a.RequestJSON(f))).
+		Methods("POST")
+
+	f = a.UserAuthMux(
+		a.HandleUnfreezeGame, muxAny(isDeleter))
+
+	router.Handle(
+		fmt.Sprintf("/api/game/{%s}/unfreeze", constants.ResourceKeyGameID),
 		http.HandlerFunc(a.RequestJSON(f))).
 		Methods("POST")
 

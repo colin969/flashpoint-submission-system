@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -220,7 +221,12 @@ func (s *SiteService) GetBasePageData(ctx context.Context) (*types.BasePageData,
 	return bpd, nil
 }
 
-func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error {
+func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason string, imagesPath string, gamesPath string,
+	deletedImagesPath string, deletedGamesPath string, frozenPacksPath string) error {
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -231,7 +237,8 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 	uid := utils.UserID(ctx)
 
 	// Soft delete database entry
-	err = s.pgdal.DeleteGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath, deletedGamesPath)
+	err = s.pgdal.DeleteGame(dbs, gameId, uid, reason, imagesPath, gamesPath,
+		deletedImagesPath, deletedGamesPath, frozenPacksPath)
 	if err != nil {
 		return err
 	}
@@ -247,7 +254,12 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 	return nil
 }
 
-func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error {
+func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason string, imagesPath string, gamesPath string,
+	deletedImagesPath string, deletedGamesPath string, frozenPacksPath string) error {
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -258,7 +270,8 @@ func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason str
 	uid := utils.UserID(ctx)
 
 	// Restore database entry
-	err = s.pgdal.RestoreGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath, deletedGamesPath)
+	err = s.pgdal.RestoreGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath,
+		deletedGamesPath, frozenPacksPath)
 	if err != nil {
 		return err
 	}
@@ -408,6 +421,10 @@ func (s *SiteService) GetGameDataIndexPageData(ctx context.Context, gameId strin
 
 func (s *SiteService) SaveTag(ctx context.Context, tag *types.Tag) error {
 	uid := utils.UserID(ctx)
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -2776,6 +2793,10 @@ func (s *SiteService) DeveloperImportDatabaseJson(ctx context.Context, data *typ
 
 func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 	uid := utils.UserID(ctx)
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -2875,7 +2896,8 @@ func (s *SiteService) GetGamesPageData(ctx context.Context, modifierAfter *strin
 	return games, addApps, gameData, tagRelations, platformRelations, nil
 }
 
-func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission *types.ExtendedSubmission, subDirFullPath string, dataPacksDir string, imagesDir string, r *http.Request) (*string, error) {
+func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission *types.ExtendedSubmission, subDirFullPath string,
+	dataPacksDir string, frozenPacksDir string, imagesDir string, r *http.Request) (*string, error) {
 	// Lock the database for sequential write
 	utils.MetadataMutex.Lock()
 	defer utils.MetadataMutex.Unlock()
@@ -2904,9 +2926,9 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 	}
 	defer RemoveRepackFolder(ctx, *vr.FilePath)
 
-	// If UUID is given, check if game exists alreay
+	// If UUID is given, check if game exists already
 	var game *types.Game
-	if vr.Meta.UUID != nil {
+	if vr.Meta.UUID != nil && submission.GameExists {
 		game, _ = s.pgdal.GetGame(dbs, *vr.Meta.UUID)
 		if game != nil {
 			// If body exists, apply patch in metadata
@@ -2939,7 +2961,8 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 	}
 
 	if game == nil {
-		game, err = s.pgdal.AddSubmissionFromValidator(dbs, utils.UserID(ctx), vr)
+		// New game, import all info
+		game, err = s.pgdal.AddSubmissionFromValidator(dbs, utils.UserID(ctx), vr, submission.IsFrozen)
 		if err != nil {
 			utils.LogCtx(ctx).Error(err)
 			return nil, err
@@ -2957,7 +2980,14 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 	// Add date added into filename
 	newBase := fmt.Sprintf("%s-%d%s", game.ID, msTime, filepath.Ext(base))
 	newFileName := filepath.Join(dataPacksDir, newBase)
+	if submission.IsFrozen {
+		newFileName = filepath.Join(frozenPacksDir, newBase)
+	}
 	err = os.MkdirAll(dataPacksDir, 0777)
+	if err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(frozenPacksDir, 0777)
 	if err != nil {
 		return nil, err
 	}
@@ -3113,4 +3143,118 @@ func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
 	s.announceNotification()
 
 	return nil
+}
+
+func (s *SiteService) FreezeGame(ctx context.Context, gameId string, uid int64, dataPacksPath string,
+	frozenPacksPath string, deletedPacksPath string) error {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	game, err := s.pgdal.GetGame(dbs, gameId)
+	if err != nil {
+		return dberr(err)
+	}
+
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
+	game.ArchiveState = types.Archived
+	err = s.pgdal.SaveGame(dbs, game, uid)
+	if err != nil {
+		return dberr(err)
+	}
+
+	// Move game zip to freezer
+	for _, data := range game.Data {
+		fileName := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
+		src := path.Join(dataPacksPath, fileName)
+		if game.Deleted == true {
+			src = path.Join(deletedPacksPath, fileName)
+		}
+		dest := path.Join(frozenPacksPath, fileName)
+		// Only copy if the file exists
+		if _, err := os.Stat(src); err == nil {
+			err = os.MkdirAll(filepath.Base(src), 0777)
+			if err != nil {
+				return err
+			}
+			err = os.MkdirAll(frozenPacksPath, 0777)
+			if err != nil {
+				return err
+			}
+
+			err = utils.CopyFile(src, dest)
+			if err != nil {
+				return err
+			}
+
+			err = os.Remove(src)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return err
+}
+
+func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64, dataPacksPath string,
+	frozenPacksPath string, deletedPacksPath string) error {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	game, err := s.pgdal.GetGame(dbs, gameId)
+	if err != nil {
+		return dberr(err)
+	}
+
+	// Lock the database for sequential write
+	utils.MetadataMutex.Lock()
+	defer utils.MetadataMutex.Unlock()
+
+	game.ArchiveState = types.Available
+	err = s.pgdal.SaveGame(dbs, game, uid)
+	if err != nil {
+		return dberr(err)
+	}
+
+	// Move game zip out of freezer
+	for _, data := range game.Data {
+		fileName := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
+		src := path.Join(frozenPacksPath, fileName)
+		dest := path.Join(dataPacksPath, fileName)
+		if game.Deleted == true {
+			dest = path.Join(deletedPacksPath, fileName)
+		}
+		// Only copy if the file exists
+		if _, err := os.Stat(src); err == nil {
+			err = os.MkdirAll(frozenPacksPath, 0777)
+			if err != nil {
+				return err
+			}
+			err = os.MkdirAll(filepath.Base(dest), 0777)
+			if err != nil {
+				return err
+			}
+
+			err = utils.CopyFile(src, dest)
+			if err != nil {
+				return err
+			}
+
+			err = os.Remove(src)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return err
 }
