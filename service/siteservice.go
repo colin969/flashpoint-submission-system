@@ -421,9 +421,6 @@ func (s *SiteService) GetGameDataIndexPageData(ctx context.Context, gameId strin
 
 func (s *SiteService) SaveTag(ctx context.Context, tag *types.Tag) error {
 	uid := utils.UserID(ctx)
-	// Lock the database for sequential write
-	utils.MetadataMutex.Lock()
-	defer utils.MetadataMutex.Unlock()
 
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
@@ -2793,9 +2790,6 @@ func (s *SiteService) DeveloperImportDatabaseJson(ctx context.Context, data *typ
 
 func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 	uid := utils.UserID(ctx)
-	// Lock the database for sequential write
-	utils.MetadataMutex.Lock()
-	defer utils.MetadataMutex.Unlock()
 
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
