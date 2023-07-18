@@ -2804,6 +2804,15 @@ func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 	}
 	defer dbs.Rollback()
 
+	// Always use existing values for certain fields
+	existingGame, err := s.pgdal.GetGame(dbs, game.ID)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	game.ArchiveState = existingGame.ArchiveState
+
 	err = s.pgdal.SaveGame(dbs, game, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
