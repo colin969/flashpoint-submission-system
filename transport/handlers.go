@@ -536,10 +536,6 @@ func (a *App) HandlePostTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lock the database for sequential write
-	utils.MetadataMutex.Lock()
-	defer utils.MetadataMutex.Unlock()
-
 	err = a.Service.SaveTag(ctx, &tag)
 	if err != nil {
 		writeResponse(ctx, w, err.Error(), http.StatusBadRequest)
