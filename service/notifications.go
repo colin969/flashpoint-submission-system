@@ -7,6 +7,7 @@ import (
 	"github.com/Dri0m/flashpoint-submission-system/database"
 	"github.com/Dri0m/flashpoint-submission-system/types"
 	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"golang.org/x/exp/slices"
 	"strings"
 	"time"
 )
@@ -387,6 +388,17 @@ func (s *SiteService) ProduceRemindersAboutRequestedChanges(ctx context.Context)
 
 // createFreezeNotification formats and stores freeze notification
 func (s *SiteService) createFreezeNotification(dbs database.DBSession, authorID, deleterID int64, sid int64) error {
+	actions, err := s.dal.GetNotificationSettingsByUserID(dbs, authorID)
+	if err != nil {
+		utils.LogCtx(dbs.Ctx()).Error(err)
+		return dberr(err)
+	}
+
+	// TODO freezer notifications are tied to mark added, as freeze is not an action, so this is a temporary solution
+	if !slices.Contains(actions, constants.ActionMarkAdded) {
+		return nil
+	}
+
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("You've got mail! <@%d>\n", authorID))
 	b.WriteString(fmt.Sprintf("<https://fpfss.unstable.life/web/submission/%d>\n", sid))
@@ -405,6 +417,17 @@ func (s *SiteService) createFreezeNotification(dbs database.DBSession, authorID,
 
 // createUnfreezeNotification formats and stores freeze notification
 func (s *SiteService) createUnfreezeNotification(dbs database.DBSession, authorID, deleterID int64, sid int64) error {
+	actions, err := s.dal.GetNotificationSettingsByUserID(dbs, authorID)
+	if err != nil {
+		utils.LogCtx(dbs.Ctx()).Error(err)
+		return dberr(err)
+	}
+
+	// TODO freezer notifications are tied to mark added, as freeze is not an action, so this is a temporary solution
+	if !slices.Contains(actions, constants.ActionMarkAdded) {
+		return nil
+	}
+
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("You've got mail! <@%d>\n", authorID))
 	b.WriteString(fmt.Sprintf("<https://fpfss.unstable.life/web/submission/%d>\n", sid))
