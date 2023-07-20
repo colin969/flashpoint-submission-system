@@ -57,10 +57,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		return a.IsUserWithinResourceLimit(r, uid, constants.ResourceKeySubmissionID, 1)
 	}
 	isSubmissionFrozen := func(r *http.Request, uid int64) (bool, error) {
-		return a.IsResourceFrozen(r, uid, constants.ResourceKeySubmissionID)
+		return a.IsResourceFrozen(r, constants.ResourceKeySubmissionID)
+	}
+	isAnySubmissionFrozen := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsResourceFrozen(r, constants.ResourceKeySubmissionIDs)
 	}
 	isAnySubmissionFileFrozen := func(r *http.Request, uid int64) (bool, error) {
-		return a.IsResourceFrozen(r, uid, constants.ResourceKeyFileIDs)
+		return a.IsResourceFrozen(r, constants.ResourceKeyFileIDs)
+	}
+	isSubmissionMarkedAsAdded := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsResourceMarkedAsAdded(r, constants.ResourceKeySubmissionID)
+	}
+	isAnySubmissionMarkedAsAdded := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsResourceMarkedAsAdded(r, constants.ResourceKeySubmissionIDs)
 	}
 
 	// static file server
@@ -312,7 +321,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleFreezeGame, muxAny(isDeleter))
+		a.HandleFreezeGame, muxAny(isFreezer))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/freeze", constants.ResourceKeyGameID),
@@ -320,7 +329,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleUnfreezeGame, muxAny(isDeleter))
+		a.HandleUnfreezeGame, muxAny(isFreezer))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/unfreeze", constants.ResourceKeyGameID),
@@ -501,9 +510,10 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		fmt.Sprintf("/api/submission-batch/{%s}/comment", constants.ResourceKeySubmissionIDs),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
 			a.HandleCommentReceiverBatch, muxAny(
-				muxAll(isStaff, a.UserCanCommentAction),
-				muxAll(isTrialCurator, userOwnsAllSubmissions),
-				muxAll(isInAudit, userOwnsAllSubmissions)))))).
+				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction), // TODO plural!
+				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isTrialCurator, userOwnsAllSubmissions, a.UserCanCommentAction),
+				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isInAudit, userOwnsAllSubmissions, a.UserCanCommentAction),
+				muxAll(muxNot(isAnySubmissionMarkedAsAdded), isAnySubmissionFrozen, isFreezer, a.UserCanCommentAction)))))).
 		Methods("POST")
 
 	router.Handle("/api/notification-settings",
@@ -543,7 +553,6 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
-	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
@@ -556,7 +565,6 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			))))).
 		Methods("GET")
 
-	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission-file-batch/{%s}", constants.ResourceKeyFileIDs),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
@@ -568,7 +576,6 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			))))).
 		Methods("GET")
 
-	// TODO add permission handling for frozen submission
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/curation-image/{%s}.png", constants.ResourceKeySubmissionID, constants.ResourceKeyCurationImageID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
@@ -592,19 +599,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteSubmissionFile, muxAll(isDeleter))))).
+			a.HandleSoftDeleteSubmissionFile, muxAll(muxNot(isSubmissionMarkedAsAdded), muxNot(isSubmissionFrozen), isDeleter))))).
 		Methods("DELETE")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteSubmission, muxAll(isDeleter))))).
+			a.HandleSoftDeleteSubmission, muxAll(muxNot(isSubmissionMarkedAsAdded), muxNot(isSubmissionFrozen), isDeleter))))).
 		Methods("DELETE")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/comment/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyCommentID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteComment, muxAll(isDeleter))))).
+			a.HandleSoftDeleteComment, muxAll(muxNot(isSubmissionMarkedAsAdded), muxNot(isSubmissionFrozen), isDeleter))))).
 		Methods("DELETE")
 
 	// bot override
@@ -620,13 +627,13 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/freeze", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleFreezeSubmission, muxAll(isFreezer))))).
+			a.HandleFreezeSubmission, muxAll(muxNot(isSubmissionMarkedAsAdded), isFreezer))))).
 		Methods("POST")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/unfreeze", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleUnfreezeSubmission, muxAll(isFreezer))))).
+			a.HandleUnfreezeSubmission, muxAll(muxNot(isSubmissionMarkedAsAdded), isFreezer))))).
 		Methods("POST")
 
 	// user statistics

@@ -10,6 +10,7 @@ import (
 	"github.com/Dri0m/flashpoint-submission-system/types"
 	"github.com/Dri0m/flashpoint-submission-system/utils"
 	"github.com/gorilla/mux"
+	"golang.org/x/exp/slices"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -370,7 +371,7 @@ func (a *App) UserCanCommentAction(r *http.Request, uid int64) (bool, error) {
 }
 
 // IsResourceFrozen accepts resource that is frozen, or if any of them is when multiple are given
-func (a *App) IsResourceFrozen(r *http.Request, uid int64, resourceKey string) (bool, error) {
+func (a *App) IsResourceFrozen(r *http.Request, resourceKey string) (bool, error) {
 	ctx := r.Context()
 
 	searchSubmissionBySID := func(sid int64) func() (interface{}, error) {
@@ -407,6 +408,36 @@ func (a *App) IsResourceFrozen(r *http.Request, uid int64, resourceKey string) (
 		s := submissions.([]*types.ExtendedSubmission)[0]
 		return s.IsFrozen, nil
 
+	} else if resourceKey == constants.ResourceKeySubmissionIDs {
+		params := mux.Vars(r)
+		submissionIDs := strings.Split(params[constants.ResourceKeySubmissionIDs], ",")
+		sids := make([]int64, 0, len(submissionIDs))
+
+		for _, submissionID := range submissionIDs {
+			sid, err := strconv.ParseInt(submissionID, 10, 64)
+			if err != nil {
+				return false, fmt.Errorf("invalid submission id")
+			}
+			sids = append(sids, sid)
+		}
+
+		for _, sid := range sids {
+			submissions, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("searchSubmissionBySID-%d", sid), searchSubmissionBySID(sid))
+			if err != nil {
+				return false, err
+			}
+			utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission by submission id")
+
+			if len(submissions.([]*types.ExtendedSubmission)) == 0 {
+				return false, fmt.Errorf("submission with id %d not found", sid)
+			}
+
+			submission := submissions.([]*types.ExtendedSubmission)[0]
+
+			if submission.IsFrozen {
+				return true, nil
+			}
+		}
 	} else if resourceKey == constants.ResourceKeyFileIDs {
 		params := mux.Vars(r)
 		fileIDs := strings.Split(params[constants.ResourceKeyFileIDs], ",")
@@ -450,12 +481,76 @@ func (a *App) IsResourceFrozen(r *http.Request, uid int64, resourceKey string) (
 				return s.IsFrozen, nil
 			}
 		}
-
-	} else {
-		return false, fmt.Errorf("invalid resource")
 	}
 
-	return false, nil
+	return false, fmt.Errorf("invalid resource")
+}
+
+// IsResourceMarkedAsAdded accepts submisison that is marked as added
+func (a *App) IsResourceMarkedAsAdded(r *http.Request, resourceKey string) (bool, error) {
+	ctx := r.Context()
+
+	searchSubmissionBySID := func(sid int64) func() (interface{}, error) {
+		return func() (interface{}, error) {
+			s, _, err := a.Service.SearchSubmissions(ctx, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
+			return s, err
+		}
+	}
+
+	if resourceKey == constants.ResourceKeySubmissionID {
+		params := mux.Vars(r)
+		submissionID := params[constants.ResourceKeySubmissionID]
+		sid, err := strconv.ParseInt(submissionID, 10, 64)
+		if err != nil {
+			return false, fmt.Errorf("invalid submission id")
+		}
+
+		submissions, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("searchSubmissionBySID-%d", sid), searchSubmissionBySID(sid))
+		if err != nil {
+			return false, err
+		}
+		utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission by submission id")
+
+		if len(submissions.([]*types.ExtendedSubmission)) == 0 {
+			return false, fmt.Errorf("submission with id %d not found", sid)
+		}
+
+		s := submissions.([]*types.ExtendedSubmission)[0]
+		return slices.Contains(s.DistinctActions, constants.ActionMarkAdded), nil
+
+	} else if resourceKey == constants.ResourceKeySubmissionIDs {
+		params := mux.Vars(r)
+		submissionIDs := strings.Split(params[constants.ResourceKeySubmissionIDs], ",")
+		sids := make([]int64, 0, len(submissionIDs))
+
+		for _, submissionID := range submissionIDs {
+			sid, err := strconv.ParseInt(submissionID, 10, 64)
+			if err != nil {
+				return false, fmt.Errorf("invalid submission id")
+			}
+			sids = append(sids, sid)
+		}
+
+		for _, sid := range sids {
+			submissions, err, cached := a.authMiddlewareCache.Memoize(fmt.Sprintf("searchSubmissionBySID-%d", sid), searchSubmissionBySID(sid))
+			if err != nil {
+				return false, err
+			}
+			utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("searching submission by submission id")
+
+			if len(submissions.([]*types.ExtendedSubmission)) == 0 {
+				return false, fmt.Errorf("submission with id %d not found", sid)
+			}
+
+			submission := submissions.([]*types.ExtendedSubmission)[0]
+
+			if slices.Contains(submission.DistinctActions, constants.ActionMarkAdded) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, fmt.Errorf("invalid resource")
 }
 
 func muxAny(authorizers ...func(*http.Request, int64) (bool, error)) func(*http.Request, int64) (bool, error) {
