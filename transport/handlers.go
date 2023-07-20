@@ -1529,3 +1529,15 @@ func (a *App) HandleUnfreezeSubmission(w http.ResponseWriter, r *http.Request) {
 
 	writeResponse(ctx, w, nil, http.StatusNoContent)
 }
+
+func (a *App) HandleNukeSessionTable(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	err := a.Service.NukeSessionTable(ctx)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, presp("nuked the session table", http.StatusOK), http.StatusOK)
+}

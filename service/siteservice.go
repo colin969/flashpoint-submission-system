@@ -3261,3 +3261,26 @@ func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64
 
 	return err
 }
+
+// NukeSessionTable nukes the session table
+func (s *SiteService) NukeSessionTable(ctx context.Context) error {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	err = s.dal.NukeSessionTable(dbs)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
