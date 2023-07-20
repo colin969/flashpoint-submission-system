@@ -71,6 +71,9 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	isAnySubmissionMarkedAsAdded := func(r *http.Request, uid int64) (bool, error) {
 		return a.IsResourceMarkedAsAdded(r, constants.ResourceKeySubmissionIDs)
 	}
+	isActionMarkAsAdded := func(r *http.Request, uid int64) (bool, error) {
+		return a.IsAction(r, constants.ActionMarkAdded)
+	}
 
 	// static file server
 	router.PathPrefix("/static/").Handler(
@@ -509,11 +512,16 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission-batch/{%s}/comment", constants.ResourceKeySubmissionIDs),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleCommentReceiverBatch, muxAny(
-				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction), // TODO plural!
-				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isTrialCurator, userOwnsAllSubmissions, a.UserCanCommentAction),
-				muxAll(muxNot(isAnySubmissionMarkedAsAdded), muxNot(isAnySubmissionFrozen), isInAudit, userOwnsAllSubmissions, a.UserCanCommentAction),
-				muxAll(muxNot(isAnySubmissionMarkedAsAdded), isAnySubmissionFrozen, isFreezer, a.UserCanCommentAction)))))).
+			a.HandleCommentReceiverBatch,
+			muxAll(
+				muxNot(isActionMarkAsAdded),
+				muxNot(isAnySubmissionMarkedAsAdded),
+				muxAny(
+					muxAll(muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction), // TODO plural!
+					muxAll(muxNot(isAnySubmissionFrozen), isTrialCurator, userOwnsAllSubmissions, a.UserCanCommentAction),
+					muxAll(muxNot(isAnySubmissionFrozen), isInAudit, userOwnsAllSubmissions, a.UserCanCommentAction),
+					muxAll(isAnySubmissionFrozen, isFreezer, a.UserCanCommentAction),
+				)))))).
 		Methods("POST")
 
 	router.Handle("/api/notification-settings",

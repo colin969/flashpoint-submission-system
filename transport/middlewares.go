@@ -553,6 +553,16 @@ func (a *App) IsResourceMarkedAsAdded(r *http.Request, resourceKey string) (bool
 	return false, fmt.Errorf("invalid resource")
 }
 
+func (a *App) IsAction(r *http.Request, action string) (bool, error) {
+	if err := r.ParseForm(); err != nil {
+		return false, err
+	}
+
+	formAction := r.FormValue("action")
+
+	return action == formAction, nil
+}
+
 func muxAny(authorizers ...func(*http.Request, int64) (bool, error)) func(*http.Request, int64) (bool, error) {
 	return func(r *http.Request, uid int64) (bool, error) {
 		for _, authorizer := range authorizers {
