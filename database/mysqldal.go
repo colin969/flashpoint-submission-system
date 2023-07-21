@@ -1176,3 +1176,9 @@ func (d *mysqlDAL) UnfreezeSubmission(dbs DBSession, sid int64) error {
 
 	return nil
 }
+
+// NukeSessionTable empties the session table
+func (d *mysqlDAL) NukeSessionTable(dbs DBSession) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `DELETE from session`)
+	return err
+}

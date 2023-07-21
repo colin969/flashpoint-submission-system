@@ -72,7 +72,6 @@ func AdderRoles() []string {
 
 func GodRoles() []string {
 	return []string{
-		RoleTheBlue,
 		RoleTheD,
 	}
 }

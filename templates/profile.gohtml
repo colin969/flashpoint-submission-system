@@ -23,7 +23,7 @@
             <label for="notification-action">Request Changes
                 <input type="checkbox" class="notification-action" value="request-changes"
                        {{if has "request-changes" .NotificationActions}}checked{{end}}></label>
-            <label for="notification-action">Mark as Added
+            <label for="notification-action">Mark as Added + Freezer
                 <input type="checkbox" class="notification-action" value="mark-added"
                        {{if has "mark-added" .NotificationActions}}checked{{end}}></label>
             <label for="notification-action">File upload
@@ -69,6 +69,9 @@
         {{end}}
         {{if isAdder .UserRoles}}
             You have permissions to mark submissions as added to Flashpoint.<br>
+        {{end}}
+        {{if isFreezer .UserRoles}}
+            You have permissions to freeze submisisons.<br>
         {{end}}
         {{if isGod .UserRoles}}
             <b>You have permissions to access god tools.</b><br>
