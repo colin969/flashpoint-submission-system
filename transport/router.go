@@ -3,6 +3,7 @@ package transport
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Dri0m/flashpoint-submission-system/constants"
 	"github.com/gorilla/mux"
@@ -71,7 +72,12 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	isAnySubmissionMarkedAsAdded := func(r *http.Request, uid int64) (bool, error) {
 		return a.IsResourceMarkedAsAdded(r, constants.ResourceKeySubmissionIDs)
 	}
-	isActionMarkAsAdded := func(r *http.Request, uid int64) (bool, error) {
+	isActionMarkAsAddedForMultipleSubmissions := func(r *http.Request, uid int64) (bool, error) {
+		params := mux.Vars(r)
+		submissionIDs := strings.Split(params[constants.ResourceKeySubmissionIDs], ",")
+		if len(submissionIDs) == 1 {
+			return false, nil
+		}
 		return a.IsAction(r, constants.ActionMarkAdded)
 	}
 
@@ -514,7 +520,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
 			a.HandleCommentReceiverBatch,
 			muxAll(
-				muxNot(isActionMarkAsAdded),
+				muxNot(isActionMarkAsAddedForMultipleSubmissions),
 				muxNot(isAnySubmissionMarkedAsAdded),
 				muxAny(
 					muxAll(muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction), // TODO plural!
