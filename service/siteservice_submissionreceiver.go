@@ -319,6 +319,12 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 
 	// feed the curation feed
 	isCurationValid := len(vr.CurationErrors) == 0 && len(vr.CurationWarnings) == 0
+
+	// do not create notification if the only problem is the freezer
+	if len(vr.CurationErrors) == 0 && len(vr.CurationWarnings) == 1 && strings.Contains(vr.CurationWarnings[0], "Curation should be frozen") {
+		isCurationValid = true
+	}
+
 	if err := s.createCurationFeedMessage(dbs, uid, submissionID, isSubmissionNew, isCurationValid, &vr.Meta, isAudition); err != nil {
 		s.SSK.SetFailed(tempName, "internal error")
 		return &destinationFilePath, nil, 0, dberr(err)
