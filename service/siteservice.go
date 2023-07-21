@@ -2931,6 +2931,7 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 
 	// If UUID is given, check if game exists already
 	var game *types.Game
+	var gameData *types.GameData
 	if vr.Meta.UUID != nil && submission.GameExists {
 		game, _ = s.pgdal.GetGame(dbs, *vr.Meta.UUID)
 		if game != nil {
@@ -2960,6 +2961,7 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 				return nil, err
 			}
 			game.Data = append(game.Data, data)
+			gameData = data
 		}
 	}
 
@@ -2970,9 +2972,10 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 			utils.LogCtx(ctx).Error(err)
 			return nil, err
 		}
+		gameData = game.Data[0]
 	}
 
-	msTime := game.Data[0].DateAdded.UnixMilli()
+	msTime := gameData.DateAdded.UnixMilli()
 
 	utils.LogCtx(ctx).Debug("Adding sub from validator")
 	// Add game into metadata
