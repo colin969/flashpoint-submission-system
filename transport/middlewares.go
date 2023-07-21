@@ -434,9 +434,7 @@ func (a *App) IsResourceFrozen(r *http.Request, resourceKey string) (bool, error
 
 			submission := submissions.([]*types.ExtendedSubmission)[0]
 
-			if submission.IsFrozen {
-				return true, nil
-			}
+			return submission.IsFrozen, nil
 		}
 	} else if resourceKey == constants.ResourceKeyFileIDs {
 		params := mux.Vars(r)
@@ -477,9 +475,7 @@ func (a *App) IsResourceFrozen(r *http.Request, resourceKey string) (bool, error
 
 			s := submissions.([]*types.ExtendedSubmission)[0]
 
-			if s.IsFrozen {
-				return s.IsFrozen, nil
-			}
+			return s.IsFrozen, nil
 		}
 	}
 
@@ -544,9 +540,7 @@ func (a *App) IsResourceMarkedAsAdded(r *http.Request, resourceKey string) (bool
 
 			submission := submissions.([]*types.ExtendedSubmission)[0]
 
-			if slices.Contains(submission.DistinctActions, constants.ActionMarkAdded) {
-				return true, nil
-			}
+			return slices.Contains(submission.DistinctActions, constants.ActionMarkAdded), nil
 		}
 	}
 
