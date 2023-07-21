@@ -6,6 +6,7 @@
     {{$isExtreme := eq "Yes" (unpointify .CurationMeta.Extreme)}}
     {{$isFrozen := (index .Submissions 0).IsFrozen}}
     {{$UserCanModify := or (isStaff .UserRoles) (eq .UserID (index .Submissions 0).SubmitterID)}}
+    {{$isMarkAdded := has "mark-added" (index .Submissions 0).DistinctActions}}
     <script type="text/javascript">
         function showExtremeImages() {
             const baseElem = document.getElementById('submission-images');
@@ -60,7 +61,7 @@
 
                     <br>
 
-                    {{if $canFreeze}}
+                    {{if and (and (not .CurationMeta.GameExists) ($canFreeze)) (not $isMarkAdded)}}
                         {{if $isFrozen}}
                             <h3>Unfreeze submission</h3>
                             <button class="pure-button button-freeze"
@@ -74,7 +75,7 @@
                         {{end}}
                     {{end}}
                 </div>
-                {{if $UserCanModify}}
+                {{if and $UserCanModify (not $isMarkAdded)}}
                     <div class="pure-u-1-2">
                         <div id="content-resumable" hidden>
                             <h3>Upload a fixed version</h3>
@@ -101,28 +102,28 @@
             </div>
         {{end}}
 
-        {{if or (not $isFrozen) ($canFreeze)}}
-        <div class="pure-g">
-            <div class="pure-u-1-2">
+        {{if and (or (not $isFrozen) ($canFreeze)) (not $isMarkAdded)}}
+            <div class="pure-g">
+                <div class="pure-u-1-2">
 
-                {{if $canDelete}}
-                    <h3>Delete submission and all its related data</h3>
-                    <button class="pure-button button-delete"
-                            onclick="deleteSubmission({{$submissionID}})">Delete
-                    </button>
-                {{end}}
+                    {{if $canDelete}}
+                        <h3>Delete submission and all its related data</h3>
+                        <button class="pure-button button-delete"
+                                onclick="deleteSubmission({{$submissionID}})">Delete
+                        </button>
+                    {{end}}
+                </div>
+                <div class="pure-u-1-2">
+
+                    {{if isStaff .UserRoles}}
+                        <h3>Override Bot</h3>
+                        <button class="pure-button button-override"
+                                onclick="overrideBot({{$submissionID}})">Override
+                        </button>
+                    {{end}}
+
+                </div>
             </div>
-            <div class="pure-u-1-2">
-
-                {{if isStaff .UserRoles}}
-                    <h3>Override Bot</h3>
-                    <button class="pure-button button-override"
-                            onclick="overrideBot({{$submissionID}})">Override
-                    </button>
-                {{end}}
-
-            </div>
-        </div>
         {{end}}
 
         {{if or (not $isFrozen) ($canFreeze)}}
@@ -135,12 +136,12 @@
                                  class="curation-image" alt="curation image">
                         {{end}}
                     {{else}}
-                    <button class="pure-button" onclick="showExtremeImages()">Show Extreme Images</button>
+                        <button class="pure-button" onclick="showExtremeImages()">Show Extreme Images</button>
                     {{end}}
                 </div>
             {{else}}
                 <h3>Game Link</h3>
-                    <a href="/web/game/{{.CurationMeta.UUID}}">{{.CurationMeta.Title}}</a>
+                <a href="/web/game/{{.CurationMeta.UUID}}">{{.CurationMeta.Title}}</a>
             {{end}}
 
             {{if .CurationMeta.GameExists}}
@@ -191,7 +192,8 @@
                         </tr>
                         <tr>
                             <td class="meta-property">Alternate Titles</td>
-                            <td class="break-all">{{if not .CurationMeta.AlternateTitles}}<i>No Alternate Titles</i>{{else}}
+                            <td class="break-all">{{if not .CurationMeta.AlternateTitles}}<i>No Alternate
+                                    Titles</i>{{else}}
                                     {{range $i, $line := (splitMultilineText .CurationMeta.AlternateTitles) }}{{if gt $i 0}}
                                         <br>{{end}}{{$line}}
                                     {{end}}{{end}}</td>
@@ -277,7 +279,8 @@
                         </tr>
                         <tr>
                             <td class="meta-property">Primary Platform</td>
-                            <td class="break-all">{{if not .CurationMeta.PrimaryPlatform}}<i>No Primary Platform</i>{{else}}
+                            <td class="break-all">{{if not .CurationMeta.PrimaryPlatform}}<i>No Primary
+                                    Platform</i>{{else}}
                                     {{range $i, $line := (splitMultilineText .CurationMeta.PrimaryPlatform) }}{{if gt $i 0}}
                                         <br>{{end}}{{$line}}
                                     {{end}}{{end}}</td>
@@ -291,7 +294,8 @@
                         </tr>
                         <tr>
                             <td class="meta-property">Application Path</td>
-                            <td class="break-all">{{if not .CurationMeta.ApplicationPath}}<i>No Application Path</i>{{else}}
+                            <td class="break-all">{{if not .CurationMeta.ApplicationPath}}<i>No Application
+                                    Path</i>{{else}}
                                     {{range $i, $line := (splitMultilineText .CurationMeta.ApplicationPath) }}{{if gt $i 0}}
                                         <br>{{end}}{{$line}}
                                     {{end}}{{end}}</td>
@@ -305,7 +309,8 @@
                         </tr>
                         <tr>
                             <td class="meta-property">Mount Parameters</td>
-                            <td class="break-all">{{if not .CurationMeta.MountParameters}}<i>No Mount Parameters</i>{{else}}
+                            <td class="break-all">{{if not .CurationMeta.MountParameters}}<i>No Mount
+                                    Parameters</i>{{else}}
                                     {{range $i, $line := (splitMultilineText .CurationMeta.MountParameters) }}{{if gt $i 0}}
                                         <br>{{end}}{{$line}}
                                     {{end}}{{end}}</td>
@@ -351,77 +356,77 @@
             {{end}}
         {{end}}
 
-        {{if or (not $isFrozen) ($canFreeze)}}
-            <h3>Subscription</h3>
-            {{if .IsUserSubscribed}}
-                <p>You're currently receiving notifications about this subscription.</p>
-                <button class="pure-button pure-button-primary"
-                        onclick="updateSubscriptionSettings('{{$submissionID}}', false)">Unsubscribe
-                </button>
-            {{else}}
-                <p>Subscribe to receive notifications about this submission.</p>
-                <button class="pure-button pure-button-primary"
-                        onclick="updateSubscriptionSettings('{{$submissionID}}', true)">Subscribe
-                </button>
-            {{end}}
+        {{if and (or (not $isFrozen) ($canFreeze)) (not $isMarkAdded)}}
+                <h3>Subscription</h3>
+                {{if .IsUserSubscribed}}
+                    <p>You're currently receiving notifications about this subscription.</p>
+                    <button class="pure-button pure-button-primary"
+                            onclick="updateSubscriptionSettings('{{$submissionID}}', false)">Unsubscribe
+                    </button>
+                {{else}}
+                    <p>Subscribe to receive notifications about this submission.</p>
+                    <button class="pure-button pure-button-primary"
+                            onclick="updateSubscriptionSettings('{{$submissionID}}', true)">Subscribe
+                    </button>
+                {{end}}
         {{end}}
 
         {{if or (not $isFrozen) ($canFreeze)}}
             <h3>Comments</h3>
             {{range .Comments}}
-                <div class="pure-g comment">
-                    <div class="pure-u-1-6 bgr-{{.Action}}">
-                        <div class="comment-header">
-                            <div class="comment-header-user">
-                                <img src="{{default "/static/zuma.png" .AvatarURL}}" class="comment-avatar"
-                                     alt="avatar"
-                                     title="{{if not .AvatarURL}}avatar missing, feels really weird man{{else}}a beautiful avatar{{end}}">
-                                <b>{{.Username}}</b>
-                            </div>
+            <div class="pure-g comment">
+                <div class="pure-u-1-6 bgr-{{.Action}}">
+                    <div class="comment-header">
+                        <div class="comment-header-user">
+                            <img src="{{default "/static/zuma.png" .AvatarURL}}" class="comment-avatar"
+                                 alt="avatar"
+                                 title="{{if not .AvatarURL}}avatar missing, feels really weird man{{else}}a beautiful avatar{{end}}">
+                            <b>{{.Username}}</b>
+                        </div>
 
-                            {{if $canDelete}}
-                                <button class="micro-button" title="delete comment"
-                                        onclick="deleteComment({{$submissionID}}, {{.CommentID}})">D
-                                </button>
-                            {{end}}
-                            {{if $canViewSubmissionsOfOthers}}
-                                <button class="micro-button" title="show user's submissions"
-                                        onclick="location.href='/web/submissions?submitter-id={{.AuthorID}}'">S
-                                </button>
-                            {{end}}
-                            <br>
-                            <span class="comment-date">{{.CreatedAt.Format "2006-01-02 15:04:05 -0700"}}</span>
-                        </div>
-                    </div>
-                    <div class="pure-u-5-6">
-                        <div class="comment-body">
-                            {{if .Message}}
-                                {{range $i, $line := (splitMultilineText .Message) }}{{if gt $i 0}}
-                                    <br>{{end}}{{$line}}{{end}}
-                            {{else}}
-                                {{if eq .Action "approve"}}
-                                    <i class="default-comment">Approved the submission.</i>
-                                {{else if eq .Action "accept"}}
-                                    <i class="default-comment">Accepted the submission.</i>
-                                {{else if eq .Action "mark-added"}}
-                                    <i class="default-comment">Marked the submission as added to Flashpoint.</i>
-                                {{else if eq .Action "upload-file"}}
-                                    <i class="default-comment">Uploaded a new file.</i>
-                                {{else if eq .Action "assign-testing"}}
-                                    <i class="default-comment">Is now testing this.</i>
-                                {{else if eq .Action "unassign-testing"}}
-                                    <i class="default-comment">Is not testing this anymore.</i>
-                                {{else if eq .Action "assign-verification"}}
-                                    <i class="default-comment">Is now verifying this.</i>
-                                {{else if eq .Action "unassign-verification"}}
-                                    <i class="default-comment">Is not verifying this anymore.</i>
-                                {{else if eq .Action "verify"}}
-                                    <i class="default-comment">Verified the submission.</i>
-                                {{end}}
-                            {{end}}
-                        </div>
+                        {{if $canDelete}}
+                            <button class="micro-button" title="delete comment"
+                                    onclick="deleteComment({{$submissionID}}, {{.CommentID}})">D
+                            </button>
+                        {{end}}
+                        {{if $canViewSubmissionsOfOthers}}
+                            <button class="micro-button" title="show user's submissions"
+                                    onclick="location.href='/web/submissions?submitter-id={{.AuthorID}}'">S
+                            </button>
+                        {{end}}
+                        <br>
+                        <span class="comment-date">{{.CreatedAt.Format "2006-01-02 15:04:05 -0700"}}</span>
                     </div>
                 </div>
+                <div class="pure-u-5-6">
+                    <div class="comment-body">
+                        {{if .Message}}
+                            {{range $i, $line := (splitMultilineText .Message) }}{{if gt $i 0}}
+                                <br>{{end}}{{$line}}{{end}}
+                        {{else}}
+                            {{if eq .Action "approve"}}
+                                <i class="default-comment">Approved the submission.</i>
+                            {{else if eq .Action "accept"}}
+                                <i class="default-comment">Accepted the submission.</i>
+                            {{else if eq .Action "mark-added"}}
+                                <i class="default-comment">Marked the submission as added to Flashpoint.</i>
+                            {{else if eq .Action "upload-file"}}
+                                <i class="default-comment">Uploaded a new file.</i>
+                            {{else if eq .Action "assign-testing"}}
+                                <i class="default-comment">Is now testing this.</i>
+                            {{else if eq .Action "unassign-testing"}}
+                                <i class="default-comment">Is not testing this anymore.</i>
+                            {{else if eq .Action "assign-verification"}}
+                                <i class="default-comment">Is now verifying this.</i>
+                            {{else if eq .Action "unassign-verification"}}
+                                <i class="default-comment">Is not verifying this anymore.</i>
+                            {{else if eq .Action "verify"}}
+                                <i class="default-comment">Verified the submission.</i>
+                            {{end}}
+                        {{end}}
+                    </div>
+                </div>
+            </div>
             {{end}}
 
             <br>
@@ -430,7 +435,7 @@
 
             {{template "view-submission-nav" .}}
 
-            {{if $UserCanModify}}
+            {{if and $UserCanModify (not $isMarkAdded)}}
                 {{template "comment-form" .}}
             {{end}}
         {{end}}

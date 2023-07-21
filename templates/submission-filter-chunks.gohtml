@@ -36,6 +36,25 @@
         </div>
     </fieldset>
 {{end}}
+{{define "submission-filter-frozen"}}
+    <fieldset>
+        <legend>Filter by temperature</legend>
+        <div class="pure-g">
+            <div class="pure-u-1-2">
+                <label>
+                    <input type="radio" name="is-frozen" value="no"
+                           {{if eq "no" (unpointify .Filter.IsFrozen)}}checked{{end}}>
+                    Not Frozen</label>
+            </div>
+            <div class="pure-u-1-2">
+                <label>
+                    <input type="radio" name="is-frozen" value="yes"
+                           {{if eq "yes" (unpointify .Filter.IsFrozen)}}checked{{end}}>
+                    Frozen</label>
+            </div>
+        </div>
+    </fieldset>
+{{end}}
 {{define "submission-filter-level"}}
     <fieldset>
         <legend>Filter by Submission Level (union)</legend>

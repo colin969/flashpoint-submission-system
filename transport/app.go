@@ -84,10 +84,10 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 		a.Service.RunNotificationConsumer(l, ctx, wg)
 	}()
 
-	l.Infoln("starting the memstats printer...")
-
-	wg.Add(1)
-	go memstatsPrinter(l, ctx, wg)
+	// disable memstats for now
+	//l.Infoln("starting the memstats printer...")
+	//wg.Add(1)
+	//go memstatsPrinter(l, ctx, wg)
 
 	term := make(chan os.Signal, 1)
 	signal.Notify(term, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

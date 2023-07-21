@@ -303,3 +303,30 @@ func NilTime(t *time.Time) time.Time {
 	}
 	return *t
 }
+
+func CopyFile(src string, dest string) error {
+	// Copy renamed data pack file to data packs folder
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dest) // creates if file doesn't exist
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile) // check first var for number of bytes copied
+	if err != nil {
+		return err
+	}
+
+	err = destFile.Sync()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

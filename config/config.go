@@ -47,6 +47,7 @@ type Config struct {
 	ImagesCdnCompressed          bool
 	MinLauncherVersion           string
 	DataPacksDir                 string
+	FrozenPacksDir               string
 	ImagesDir                    string
 	DeletedDataPacksDir          string
 	DeletedImagesDir             string
@@ -133,6 +134,7 @@ func GetConfig(l *logrus.Entry) *Config {
 		ImagesCdnCompressed:          EnvBool("IMAGES_CDN_COMPRESSED"),
 		MinLauncherVersion:           EnvString("MIN_LAUNCHER_VERSION"),
 		DataPacksDir:                 EnvString("DATA_PACKS_PATH"),
+		FrozenPacksDir:               EnvString("FROZEN_PACKS_PATH"),
 		ImagesDir:                    EnvString("IMAGES_PATH"),
 		DeletedDataPacksDir:          EnvString("DELETED_DATA_PACKS_PATH"),
 		DeletedImagesDir:             EnvString("DELETED_IMAGES_PATH"),

@@ -36,15 +36,17 @@ type PGDAL interface {
 
 	GetMetadataStats(dbs PGDBSession) (*types.MetadataStatsPageDataBare, error)
 
-	DeleteGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error
+	DeleteGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string,
+		deletedImagesPath string, deletedGamesPath string, frozenGamesPath string) error
 
-	RestoreGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error
+	RestoreGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string,
+		deletedImagesPath string, deletedGamesPath string, frozenGamesPath string) error
 
 	GetOrCreateTagCategory(dbs PGDBSession, categoryName string) (*types.TagCategory, error)
 	GetOrCreateTag(dbs PGDBSession, tagName string, tagCategory string, reason string, uid int64) (*types.Tag, error)
 	GetOrCreatePlatform(dbs PGDBSession, platformName string, reason string, uid int64) (*types.Platform, error)
 
-	AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr *types.ValidatorRepackResponse) (*types.Game, error)
+	AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr *types.ValidatorRepackResponse, frozen bool) (*types.Game, error)
 	AddGameData(dbs PGDBSession, uid int64, gameId string, vr *types.ValidatorRepackResponse) (*types.GameData, error)
 
 	IndexerGetNext(ctx context.Context) (*types.GameData, error)
@@ -139,6 +141,8 @@ type DAL interface {
 
 	FreezeSubmission(dbs DBSession, sid int64) error
 	UnfreezeSubmission(dbs DBSession, sid int64) error
+
+	NukeSessionTable(dbs DBSession) error
 }
 
 type DBSession interface {

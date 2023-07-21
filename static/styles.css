@@ -8,6 +8,7 @@
     --assign-testing: #11418E;
     --unassign-testing: #556B93;
     --request-changes: rgb(175, 14, 14);
+    --freeze: rgb(0, 255, 225);
 }
 
 body {
@@ -144,7 +145,8 @@ textarea {
 .dot-unassign-testing,
 .dot-assign-verification,
 .dot-system,
-.dot-unassign-verification {
+.dot-unassign-verification,
+.dot-freeze {
     border-radius: 50%;
     width: 1.5em;
     height: 1.5em;
@@ -163,13 +165,13 @@ textarea {
 .button-system,
 .button-unassign-verification,
 .button-pause,
-.button-cancel,
-.button-freeze {
+.button-cancel {
     color: white;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
-.button-override {
+.button-override,
+.button-freeze {
     color: black;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
@@ -227,9 +229,14 @@ textarea {
 
 .bgr-reject,
 .dot-reject,
-.button-reject,
-.button-freeze {
+.button-reject {
     background: var(--reject) !important;
+}
+
+.button-freeze,
+.dot-freeze,
+.bgr-freeze {
+    background: var(--freeze) !important;
 }
 
 .bgr-upload-file,

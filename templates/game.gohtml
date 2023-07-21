@@ -37,10 +37,47 @@
                     Delete
                 </a>
             {{end}}
+            {{ if eq .Game.ArchiveState 2 }}
+                <a class="pure-button pure-button-primary" onclick="(() => {
+                        fetch(`/api/game/` + {{.Game.ID}} + `/freeze`, { method: 'POST'})
+                        .then(() => {
+                        window.location.reload()
+                        })
+                        .catch((err) => {
+                        alert(err);
+                        })
+                        })()">
+                    Freeze
+                </a>
+            {{ else if eq .Game.ArchiveState 1 }}
+                <a class="pure-button pure-button-primary" onclick="(() => {
+                        fetch(`/api/game/` + {{.Game.ID}} + `/unfreeze`, { method: 'POST'})
+                        .then(() => {
+                        window.location.reload()
+                        })
+                        .catch((err) => {
+                        alert(err);
+                        })
+                        })()">
+                    Unfreeze
+                </a>
+            {{end}}
         {{end}}
         </div>
 
         <h1>{{.Game.Title}} </h1>
+
+        <div style="font-weight: bold">
+            {{if eq .Game.ArchiveState 0}}
+                ❌ Not Archived
+            {{else if eq .Game.ArchiveState 1}}
+                ❄️ Archived
+            {{else}}
+                ✅ Available
+            {{end}}
+        </div>
+
+        <br><br>
 
         <img src={{.LogoUrl}}
              class="curation-image" alt="curation image">

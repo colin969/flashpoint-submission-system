@@ -315,6 +315,14 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			}
 
 		}
+		if filter.IsFrozen != nil {
+			if *filter.IsFrozen == "no" {
+				filters = append(filters, "(submission.frozen_at IS NULL)")
+			} else if *filter.IsFrozen == "yes" {
+				filters = append(filters, "(submission.frozen_at IS NOT NULL)")
+			}
+			masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
+		}
 	}
 
 	and := ""

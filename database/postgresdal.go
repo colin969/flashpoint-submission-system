@@ -232,7 +232,7 @@ func (d *postgresDAL) SearchGames(dbs PGDBSession, modifiedAfter *string, modifi
 	rows, err = dbs.Tx().Query(dbs.Ctx(), `SELECT game.id, game.parent_game_id, game.title, game.alternate_titles, game.series,
        		game.developer, game.publisher, game.date_added, game.date_modified, game.play_mode, game.status, game.notes, game.source,
        		game.application_path, game.launch_command, game.release_date, game.version, game.original_description, game.language,
-       		game.library, game.active_data_id, game.tags_str, game.platforms_str, game.platform_name
+       		game.library, game.active_data_id, game.tags_str, game.platforms_str, game.platform_name, game.archive_state
 			FROM game
 			WHERE game.date_modified >= $1 AND game.date_modified <= $2 AND game.id > $3 AND game.deleted = FALSE
 			ORDER BY game.id
@@ -250,7 +250,7 @@ func (d *postgresDAL) SearchGames(dbs PGDBSession, modifiedAfter *string, modifi
 		if err := rows.Scan(&game.ID, &game.ParentGameID, &game.Title, &game.AlternateTitles, &game.Series, &game.Developer,
 			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes, &game.Source,
 			&game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version, &game.OriginalDesc, &game.Language,
-			&game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr, &game.PrimaryPlatform); err != nil {
+			&game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr, &game.PrimaryPlatform, &game.ArchiveState); err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
 
@@ -429,13 +429,13 @@ func (d *postgresDAL) GetGame(dbs PGDBSession, gameId string) (*types.Game, erro
        		publisher, date_added, date_modified, play_mode, status, notes,
        		source, application_path, launch_command, release_Date, version,
        		original_description, language, library, active_data_id, tags_str, platforms_str,
-       		action, reason, deleted, user_id, platform_name
+       		action, reason, deleted, user_id, platform_name, archive_state
 			FROM game WHERE id = $1`, gameId).
 		Scan(&game.ID, &game.ParentGameID, &game.Title, &game.AlternateTitles, &game.Series, &game.Developer,
 			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes,
 			&game.Source, &game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version,
 			&game.OriginalDesc, &game.Language, &game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr,
-			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform)
+			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState)
 	if err != nil {
 		return nil, err
 	}
@@ -800,12 +800,13 @@ func (d *postgresDAL) SaveGame(dbs PGDBSession, game *types.Game, uid int64) err
 					FROM game_platforms_platform p
 					WHERE p.game_id = game.id
 				), 
-				platform_name=$22
-            	WHERE id=$23`
+				platform_name=$22, archive_state=$23
+            	WHERE id=$24`
 	_, err = dbs.Tx().Exec(dbs.Ctx(), query, game.ParentGameID, game.Title, game.AlternateTitles, game.Series, game.Developer,
 		game.Publisher, game.PlayMode, game.Status, game.Notes, game.Source,
 		game.ApplicationPath, game.LaunchCommand, game.ReleaseDate, game.Version, game.OriginalDesc,
-		game.Language, game.Library, game.ActiveDataID, uid, "update", "User changed metadata", game.PrimaryPlatform, game.ID)
+		game.Language, game.Library, game.ActiveDataID, uid, "update", "User changed metadata", game.PrimaryPlatform,
+		game.ArchiveState, game.ID)
 	if err != nil {
 		return err
 	}
@@ -1095,11 +1096,11 @@ func (d *postgresDAL) DeveloperImportDatabaseJson(dbs PGDBSession, dump *types.L
 	_, err = dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO changelog_game (id, parent_game_id, title, alternate_titles, series,
                             developer, publisher, date_added, date_modified, play_mode, status, notes, source,
                             application_path, launch_command, release_date, version, original_description, language,
-                            library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name)
+                            library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state)
 		SELECT id, parent_game_id, title, alternate_titles, series,
 		       developer, publisher, date_added, date_modified, play_mode, status, notes, source,
 		       application_path, launch_command, release_date, version, original_description, language,
-		       library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name
+		       library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state
 		FROM game`)
 	if err != nil {
 		return err
@@ -1396,7 +1397,7 @@ func (d *postgresDAL) AddGameData(dbs PGDBSession, uid int64, gameId string, vr 
 	return &gameData, nil
 }
 
-func (d *postgresDAL) AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr *types.ValidatorRepackResponse) (*types.Game, error) {
+func (d *postgresDAL) AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr *types.ValidatorRepackResponse, frozen bool) (*types.Game, error) {
 	// DO EXPENSIVE OPERATIONS FIRST
 
 	// Game Data - Get SHA256
@@ -1572,16 +1573,21 @@ func (d *postgresDAL) AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr 
 		platformsStrArr = append(platformsStrArr, platformName)
 	}
 
+	state := types.Available
+	if frozen {
+		state = types.Archived
+	}
+
 	// Save Game
 	_, err = dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO game
 	(id, parent_game_id, title, alternate_titles, series, developer, publisher, play_mode, status, notes,
 	 source, application_path, launch_command, release_date, version, original_description, language, library,
-	 active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name) 
-	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
+	 active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state) 
+	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)`,
 		game.ID, "", game.Title, game.AlternateTitles, game.Series, game.Developer, game.Publisher, game.PlayMode,
 		game.Status, game.Notes, game.Source, game.ApplicationPath, game.LaunchCommand, game.ReleaseDate, game.Version,
 		game.OriginalDesc, game.Language, game.Library, gameData.ID, strings.Join(tagsStrArr, "; "),
-		strings.Join(platformsStrArr, "; "), "create", "Submission Import", uid, game.PrimaryPlatform)
+		strings.Join(platformsStrArr, "; "), "create", "Submission Import", uid, game.PrimaryPlatform, state)
 
 	if err != nil {
 		return nil, err
@@ -1628,7 +1634,8 @@ func (d *postgresDAL) GetTagRevisionInfo(dbs PGDBSession, tagId int64) ([]*types
 	return revisions, nil
 }
 
-func (d *postgresDAL) DeleteGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error {
+func (d *postgresDAL) DeleteGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string,
+	gamesPath string, deletedImagesPath string, deletedGamesPath string, frozenGamesPath string) error {
 	// Get Game Data
 	game, err := d.GetGame(dbs, gameId)
 	if err != nil {
@@ -1642,19 +1649,24 @@ func (d *postgresDAL) DeleteGame(dbs PGDBSession, gameId string, uid int64, reas
 		return err
 	}
 
-	// Disable Game Files
-	for _, data := range game.Data {
-		base := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
-		existingFileName := filepath.Join(gamesPath, base)
-		if _, err := os.Stat(existingFileName); err == nil {
-			newFilename := filepath.Join(deletedGamesPath, base)
-			err = os.MkdirAll(filepath.Dir(newFilename), 0755)
-			if err != nil {
-				return err
+	// Disable Game Files if not frozen already
+	if game.ArchiveState == types.Available {
+		for _, data := range game.Data {
+			base := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
+			existingFileName := filepath.Join(gamesPath, base)
+			if game.ArchiveState == types.Archived {
+				existingFileName = filepath.Join(frozenGamesPath, base)
 			}
-			err = os.Rename(existingFileName, newFilename)
-			if err != nil {
-				return err
+			if _, err := os.Stat(existingFileName); err == nil {
+				newFilename := filepath.Join(deletedGamesPath, base)
+				err = os.MkdirAll(filepath.Dir(newFilename), 0755)
+				if err != nil {
+					return err
+				}
+				err = os.Rename(existingFileName, newFilename)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -1690,7 +1702,8 @@ func (d *postgresDAL) DeleteGame(dbs PGDBSession, gameId string, uid int64, reas
 	return nil
 }
 
-func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string, gamesPath string, deletedImagesPath string, deletedGamesPath string) error {
+func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, reason string, imagesPath string,
+	gamesPath string, deletedImagesPath string, deletedGamesPath string, frozenGamesPath string) error {
 	// Get Game Data
 	game, err := d.GetGame(dbs, gameId)
 	if err != nil {
@@ -1703,19 +1716,25 @@ func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, rea
 		return err
 	}
 
-	// Disable Game Files
-	for _, data := range game.Data {
-		base := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
-		existingFileName := filepath.Join(deletedGamesPath, base)
-		if _, err := os.Stat(existingFileName); err == nil {
-			newFilename := filepath.Join(gamesPath, base)
-			err = os.MkdirAll(filepath.Dir(newFilename), 0755)
-			if err != nil {
-				return err
-			}
-			err = os.Rename(existingFileName, newFilename)
-			if err != nil {
-				return err
+	// Enable Game Files if not frozen already
+	if game.ArchiveState == types.Available {
+		for _, data := range game.Data {
+			base := fmt.Sprintf("%s-%d%s", game.ID, data.DateAdded.UnixMilli(), ".zip")
+			existingFileName := filepath.Join(deletedGamesPath, base)
+
+			if _, err := os.Stat(existingFileName); err == nil {
+				newFilename := filepath.Join(gamesPath, base)
+				if game.ArchiveState == types.Archived {
+					newFilename = filepath.Join(frozenGamesPath, base)
+				}
+				err = os.MkdirAll(filepath.Dir(newFilename), 0755)
+				if err != nil {
+					return err
+				}
+				err = os.Rename(existingFileName, newFilename)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
