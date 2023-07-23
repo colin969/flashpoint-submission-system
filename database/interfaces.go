@@ -145,6 +145,8 @@ type DAL interface {
 	UnfreezeSubmission(dbs DBSession, sid int64) error
 
 	NukeSessionTable(dbs DBSession) error
+
+	UpdateSubmissionAutofreeze(dbs DBSession, sid int64, shouldAutofreeze bool) error
 }
 
 type DBSession interface {

@@ -60,6 +60,8 @@ func DeciderRoles() []string {
 	return []string{
 		RoleCurator,
 		RoleTester,
+		RoleModerator,
+		RoleAdministrator,
 	}
 }
 

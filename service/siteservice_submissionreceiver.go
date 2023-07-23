@@ -325,6 +325,29 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 		isCurationValid = true
 	}
 
+	// determine if we should autofreeze the submission
+	shouldAutofreeze := false
+	warningIndex := 0
+	warning := ""
+
+	for warningIndex, warning = range vr.CurationWarnings {
+		if strings.Contains(warning, "Curation should be frozen") {
+			shouldAutofreeze = true
+			break
+		}
+	}
+
+	if err := s.dal.UpdateSubmissionAutofreeze(dbs, submissionID, shouldAutofreeze); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		s.SSK.SetFailed(tempName, "internal error")
+		return &destinationFilePath, nil, 0, dberr(err)
+	}
+
+	// remove freezer warning from the validator response
+	if len(vr.CurationWarnings) > 0 {
+		vr.CurationWarnings = append(vr.CurationWarnings[:warningIndex], vr.CurationWarnings[warningIndex+1:]...)
+	}
+
 	if err := s.createCurationFeedMessage(dbs, uid, submissionID, isSubmissionNew, isCurationValid, &vr.Meta, isAudition); err != nil {
 		s.SSK.SetFailed(tempName, "internal error")
 		return &destinationFilePath, nil, 0, dberr(err)
@@ -408,9 +431,27 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 		}
 	}
 
+	// system comment for missing release date
+	if vr.Meta.ReleaseDate == nil {
+		msg := "The submission is missing release date. Please check if the release date is really unknown."
+		sc2 := &types.Comment{
+			AuthorID:     constants.SystemID,
+			SubmissionID: submissionID,
+			Message:      &msg,
+			Action:       constants.ActionSystem,
+			CreatedAt:    s.clock.Now().Add(time.Second * 2),
+		}
+
+		if err := s.dal.StoreComment(dbs, sc2); err != nil {
+			utils.LogCtx(ectx).Error(err)
+			s.SSK.SetFailed(tempName, "internal error")
+			return &destinationFilePath, imageFilePaths, 0, dberr(err)
+		}
+	}
+
 	utils.LogCtx(ctx).Debug("processing bot event...")
 
-	bc := s.convertValidatorResponseToComment(vr)
+	bc := s.convertValidatorResponseToComment(vr, shouldAutofreeze)
 	if err := s.dal.StoreComment(dbs, bc); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		s.SSK.SetFailed(tempName, "internal error")
@@ -427,7 +468,7 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 }
 
 // convertValidatorResponseToComment produces appropriate comment based on validator response
-func (s *SiteService) convertValidatorResponseToComment(vr *types.ValidatorResponse) *types.Comment {
+func (s *SiteService) convertValidatorResponseToComment(vr *types.ValidatorResponse, shouldAutofreeze bool) *types.Comment {
 	c := &types.Comment{
 		AuthorID:     constants.ValidatorID,
 		SubmissionID: vr.Meta.SubmissionID,
@@ -449,6 +490,12 @@ func (s *SiteService) convertValidatorResponseToComment(vr *types.ValidatorRespo
 	}
 	for _, w := range vr.CurationWarnings {
 		message += fmt.Sprintf("⚠️ %s\n", w)
+	}
+
+	if shouldAutofreeze {
+		quip := "\n\n This submission will be automatically frozen after validation."
+		message += quip
+		approvalMessage += quip
 	}
 
 	c.Message = &message

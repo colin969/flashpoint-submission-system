@@ -1,0 +1,1 @@
+ALTER TABLE submission ADD should_autofreeze BOOLEAN DEFAULT FALSE;

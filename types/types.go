@@ -136,6 +136,7 @@ type ExtendedSubmission struct {
 	DistinctActions             []string
 	GameExists                  bool
 	IsFrozen                    bool
+	ShouldAutofreeze            bool
 }
 
 type SubmissionsFilter struct {
