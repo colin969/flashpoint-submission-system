@@ -188,6 +188,33 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 			return dberr(err)
 		}
 
+		// freeze the curation if it autofreeze is true
+		if formAction == constants.ActionVerify && submission.ShouldAutofreeze {
+			if err := s.dal.FreezeSubmission(dbs, submission.SubmissionID); err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+
+			if err := s.createFreezeNotification(dbs, submission.SubmitterID, uid, sid); err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+
+			msg := "This submission has been automatically frozen."
+			c := &types.Comment{
+				AuthorID:     constants.SystemID,
+				SubmissionID: sid,
+				Message:      &msg,
+				Action:       constants.ActionSystem,
+				CreatedAt:    s.clock.Now().Add(time.Second * 2),
+			}
+
+			if err := s.dal.StoreComment(dbs, c); err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+		}
+
 		if err := s.dal.UpdateSubmissionCacheTable(dbs, sid); err != nil {
 			utils.LogCtx(ctx).Error(err)
 			return dberr(err)

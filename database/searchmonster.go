@@ -370,7 +370,8 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 		submission_cache.active_verified_ids AS active_verified_ids,
 		submission_cache.distinct_actions AS distinct_actions,
 		meta.game_exists AS meta_game_exists,
-		submission.frozen_at as frozen_at
+		submission.frozen_at as frozen_at,
+		submission.should_autofreeze as should_autofreeze
 		FROM submission
 		LEFT JOIN submission_cache ON submission_cache.fk_submission_id = submission.id
 		LEFT JOIN submission_file AS oldest_file ON oldest_file.id = submission_cache.fk_oldest_file_id
@@ -420,7 +421,8 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			(SELECT "") AS active_verified_ids,
 			(SELECT "mark-added") AS distinct_actions,
 			(SELECT TRUE) as meta_game_exists,
-			(SELECT NULL) as frozen_at
+			(SELECT NULL) as frozen_at,
+			(SELECT FALSE) as should_autofreeze
 			FROM masterdb_game
 			WHERE (SELECT 1) ` + masterAnd + strings.Join(masterFilters, " AND ") + `
 		ORDER BY ` + currentOrderBy + ` ` + currentSortOrder + `
@@ -479,7 +481,7 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			&s.BotAction,
 			&s.FileCount,
 			&assignedTestingUserIDs, &assignedVerificationUserIDs, &requestedChangesUserIDs, &approvedUserIDs, &verifiedUserIDs,
-			&distinctActions, &s.GameExists, &frozenAt); err != nil {
+			&distinctActions, &s.GameExists, &frozenAt, &s.ShouldAutofreeze); err != nil {
 			return nil, 0, err
 		}
 		s.SubmitterAvatarURL = utils.FormatAvatarURL(s.SubmitterID, submitterAvatar)
