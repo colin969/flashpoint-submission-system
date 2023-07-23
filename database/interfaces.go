@@ -21,6 +21,7 @@ type PGDAL interface {
 	GetTagCategories(dbs PGDBSession) ([]*types.TagCategory, error)
 	GetGamesUsingTagTotal(dbs PGDBSession, tagId int64) (int64, error)
 	SaveGame(dbs PGDBSession, game *types.Game, uid int64) error
+	SaveGameData(dbs PGDBSession, gameId string, date int64, gameData *types.GameData) error
 	SaveTag(dbs PGDBSession, tag *types.Tag, uid int64) error
 	DeveloperImportDatabaseJson(dbs PGDBSession, data *types.LauncherDump) error
 
@@ -30,6 +31,7 @@ type PGDAL interface {
 	GetPlatform(dbs PGDBSession, platformId int64) (*types.Platform, error)
 	GetPlatformByName(dbs PGDBSession, platformName string) (*types.Platform, error)
 	GetGame(dbs PGDBSession, gameId string) (*types.Game, error)
+	GetGameData(dbs PGDBSession, gameId string, date int64) (*types.GameData, error)
 	GetGameDataIndex(dbs PGDBSession, gameId string, date int64) (*types.GameDataIndex, error)
 	GetGameRevisionInfo(dbs PGDBSession, gameId string) ([]*types.RevisionInfo, error)
 	GetTagRevisionInfo(dbs PGDBSession, tagId int64) ([]*types.RevisionInfo, error)

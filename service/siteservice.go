@@ -392,6 +392,59 @@ func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, 
 	return data, nil
 }
 
+func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int64, gameData *types.GameData) error {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	err = s.pgdal.SaveGameData(dbs, gameId, date, gameData)
+	if err != nil {
+		return dberr(err)
+	}
+
+	// Save reason
+	game, err := s.pgdal.GetGame(dbs, gameId)
+	if err != nil {
+		return dberr(err)
+	}
+	err = s.pgdal.SaveGame(dbs, game, utils.UserID(ctx))
+	if err != nil {
+		return dberr(err)
+	}
+
+	dbs.Commit()
+	return nil
+}
+
+func (s *SiteService) GetGameDataPageData(ctx context.Context, gameId string, date int64) (*types.GameDataPageData, error) {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer dbs.Rollback()
+
+	bpd, err := s.GetBasePageData(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	gameData, err := s.pgdal.GetGameData(dbs, gameId, date)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
+	pageData := &types.GameDataPageData{
+		BasePageData: *bpd,
+		GameData:     gameData,
+	}
+
+	return pageData, nil
+}
+
 func (s *SiteService) GetGameDataIndexPageData(ctx context.Context, gameId string, date int64) (*types.GameDataIndexPageData, error) {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {

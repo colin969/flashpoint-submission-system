@@ -298,6 +298,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
+		a.HandleGameDataEditPage, muxAny(isStaff))
+
+	router.Handle(
+		fmt.Sprintf("/web/game/{%s}/data/{%s}/edit", constants.ResourceKeyGameID, constants.ResourceKeyGameDataDate),
+		http.HandlerFunc(a.RequestWeb(f))).
+		Methods("GET")
+
+	router.Handle(
+		fmt.Sprintf("/web/game/{%s}/data/{%s}/edit", constants.ResourceKeyGameID, constants.ResourceKeyGameDataDate),
+		http.HandlerFunc(a.RequestJSON(f))).
+		Methods("POST")
+
+	f = a.UserAuthMux(
 		a.HandleDeleteGame, muxAny(isDeleter))
 
 	router.Handle(

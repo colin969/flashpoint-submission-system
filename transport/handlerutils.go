@@ -49,6 +49,7 @@ func (a *App) RenderTemplates(ctx context.Context, w http.ResponseWriter, r *htt
 		"capString":                     capString,
 		"er":                            equalReference,
 		"ner":                           notEqualReference,
+		"msTime":                        milliTime,
 		"localeNum":                     localeNum,
 	})
 
@@ -262,6 +263,10 @@ func notEqualReference(ref *string, str string) bool {
 	} else {
 		return str != ""
 	}
+}
+
+func milliTime(date time.Time) int64 {
+	return date.UnixMilli()
 }
 
 func localeNum(ref *int64) string {

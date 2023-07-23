@@ -651,6 +651,45 @@ func (a *App) HandleGamePage(w http.ResponseWriter, r *http.Request) {
 		"templates/game.gohtml")
 }
 
+func (a *App) HandleGameDataEditPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	gameId := params[constants.ResourceKeyGameID]
+	dateStr := params[constants.ResourceKeyGameDataDate]
+	date, err := strconv.ParseInt(dateStr, 10, 64)
+
+	pageData, err := a.Service.GetGameDataPageData(ctx, gameId, date)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	if utils.RequestType(ctx) != constants.RequestWeb {
+		// Save posted data
+		var gameData types.GameData
+		err = json.NewDecoder(r.Body).Decode(&gameData)
+		if err != nil {
+			utils.LogCtx(ctx).Error(fmt.Sprintf("decode error: %s", err.Error()))
+			writeResponse(ctx, w, "Cannot decode body into game data", http.StatusBadRequest)
+			return
+		}
+
+		// Apply editable fields
+		err = a.Service.SaveGameData(ctx, gameId, date, &gameData)
+		if err != nil {
+			utils.LogCtx(ctx).Error(fmt.Sprintf("save error: %s", err.Error()))
+			writeResponse(ctx, w, "Error saving game data", http.StatusInternalServerError)
+			return
+		}
+
+		writeResponse(ctx, w, "OK", http.StatusOK)
+		return
+	}
+
+	a.RenderTemplates(ctx, w, r, pageData,
+		"templates/game-data-edit.gohtml")
+}
+
 func (a *App) HandleGameDataIndexPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)

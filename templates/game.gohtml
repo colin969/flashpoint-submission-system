@@ -2,6 +2,7 @@
     <div class="content">
         {{ $imagesCdn := .ImagesCdn }}
         {{ $gameId := .Game.ID }}
+        {{ $editor := isStaff .UserRoles }}
 
         <h3>Game {{.Game.ID}}</h3>
         {{if .Game.Deleted}}<h3>DELETED</h3>{{end}}
@@ -326,7 +327,16 @@
                         {{end}}
                     </td>
                 </tr>
+                {{if $editor}}
+                    <tr>
+                        <td></td>
+                        <td>
+                            <a class="pure-button pure-button-primary" href="/web/game/{{$gameId}}/data/{{.DateAdded.UnixMilli}}/edit">Edit Game Data</a>
+                        </td>
+                    </tr>
+                {{end}}
             </table>
+
         {{end}}
 
         <h3>Revisions</h3>

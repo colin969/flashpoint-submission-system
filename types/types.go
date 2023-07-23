@@ -468,7 +468,7 @@ type GameData struct {
 	ID              int       `json:"id,omitempty"`
 	GameID          string    `json:"game_id,gameId"`
 	Title           string    `json:"title"`
-	DateAdded       time.Time `json:"date_added,dateAdded"`
+	DateAdded       time.Time `json:"date_added,omitempty"`
 	SHA256          string    `json:"sha_256"`
 	CRC32           int       `json:"crc_32"`
 	Size            int64     `json:"size"`
@@ -876,6 +876,13 @@ type InvalidTagUpdate struct {
 
 func (itu InvalidTagUpdate) Error() string {
 	return "Invalid tag aliases"
+}
+
+type NoGameDataFound struct {
+}
+
+func (ngdf NoGameDataFound) Error() string {
+	return "No Game Data Found"
 }
 
 type InvalidAddApps struct {

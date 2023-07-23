@@ -79,6 +79,11 @@ type GameDataIndex struct {
 	Data   []GameDataIndexFile `json:"data"`
 }
 
+type GameDataPageData struct {
+	BasePageData
+	GameData *GameData
+}
+
 type GameDataIndexPageData struct {
 	BasePageData
 	Index *GameDataIndex

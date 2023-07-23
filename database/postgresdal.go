@@ -520,21 +520,68 @@ func (d *postgresDAL) GetGame(dbs PGDBSession, gameId string) (*types.Game, erro
 	return &game, nil
 }
 
-func (d *postgresDAL) GetGameDataIndex(dbs PGDBSession, gameID string, date int64) (*types.GameDataIndex, error) {
+func (d *postgresDAL) GetGameData(dbs PGDBSession, gameId string, date int64) (*types.GameData, error) {
+	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, game_id, title, date_added,
+		sha256, crc32, size, application_path, launch_command, parameters,
+		indexed, index_error FROM game_data WHERE game_id = $1`,
+		gameId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var gameData types.GameData
+		err = rows.Scan(&gameData.ID, &gameData.GameID, &gameData.Title, &gameData.DateAdded,
+			&gameData.SHA256, &gameData.CRC32, &gameData.Size, &gameData.ApplicationPath,
+			&gameData.LaunchCommand, &gameData.Parameters, &gameData.Indexed, &gameData.IndexError)
+		if err != nil {
+			return nil, err
+		}
+
+		if gameData.DateAdded.UnixMilli() == date {
+			return &gameData, nil
+		}
+	}
+
+	return nil, types.NoGameDataFound{}
+}
+
+func (d *postgresDAL) SaveGameData(dbs PGDBSession, gameId string, date int64, gameData *types.GameData) error {
+	existingData, err := d.GetGameData(dbs, gameId, date)
+	if err != nil {
+		return err
+	}
+	_, err = dbs.Tx().Exec(dbs.Ctx(), `UPDATE game_data
+		SET application_path = $1,
+		    launch_command = $2,
+		    parameters = $3
+		WHERE id = $4`,
+		gameData.ApplicationPath, gameData.LaunchCommand, *gameData.Parameters,
+		existingData.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDAL) GetGameDataIndex(dbs PGDBSession, gameId string, date int64) (*types.GameDataIndex, error) {
 	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT path, size, 
         encode(crc32, 'hex'), 
         encode(md5, 'hex'),
         encode(sha1, 'hex'),
         encode(sha256, 'hex'),
         zip_date
-		FROM game_data_index WHERE game_id = $1`, gameID)
+		FROM game_data_index WHERE game_id = $1`, gameId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var index types.GameDataIndex
-	index.GameID = gameID
+	index.GameID = gameId
 	index.Date = date
 	index.Data = make([]types.GameDataIndexFile, 0)
 

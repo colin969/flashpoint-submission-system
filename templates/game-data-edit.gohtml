@@ -1,0 +1,100 @@
+{{define "main"}}
+    <div class="content">
+        <h1>Game Data ({{.GameData.GameID}})</h1>
+
+        <script type="text/javascript">
+            // Function to convert form elements to JSON
+            function formToJson(form) {
+                const formData = new FormData(form);
+                const json = {};
+
+                formData.forEach((value, key) => {
+                    json[key] = value;
+                });
+
+                return json;
+            }
+
+            function postData() {
+                // Assuming you have a form element to wrap these input fields
+                const form = document.getElementById('data');
+
+                // Convert the form to JSON
+                const jsonData = formToJson(form);
+
+                jsonData["crc_32"] = Number(jsonData["crc_32"])
+                jsonData["size"] = Number(jsonData["size"])
+
+                // Convert the JSON object to a JSON string
+                const jsonString = JSON.stringify(jsonData);
+
+                fetch(window.location.href, { method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: jsonString })
+                    .then(() => {
+                        window.location.href = window.location.href.split('/').slice(0, -3).join('/')
+                    })
+                    .catch((err) => {
+                        alert(err);
+                    });
+            }
+        </script>
+
+        <form id="data" autocomplete="off" method="post">
+            <div style="display: none">
+                <input type="text" name="game_id" value="{{.GameData.GameID}}">
+                <input type="text" name="title" value="{{.GameData.Title}}">
+                <input type="text" name="crc_32" value="{{.GameData.CRC32}}">
+                <input type="text" name="sha_256" value="{{.GameData.SHA256}}">
+                <input type="text" name="size" value="{{.GameData.Size}}">
+            </div>
+            <table class="pure-table pure-table-bordered meta-table stackable-table">
+                <tr>
+                    <td class="meta-property">Title</td>
+                    <td class="break-all">{{.GameData.Title}}</td>
+                </tr>
+                <tr>
+                    <td class="meta-property">Date Added</td>
+                    <td class="break-all">{{.GameData.DateAdded}}</td>
+                </tr>
+                <tr>
+                    <td class="meta-property">SHA256</td>
+                    <td class="break-all">{{.GameData.SHA256}}</td>
+                </tr>
+                <tr>
+                    <td class="meta-property">CRC32</td>
+                    <td class="break-all">{{.GameData.CRC32}}</td>
+                </tr>
+                <tr>
+                    <td class="meta-property">Size</td>
+                    <td class="break-all">{{.GameData.Size}}</td>
+                </tr>
+                <tr>
+                    <td class="meta-property">Mount Parameters</td>
+                    <td class="break-all">
+                        <input type="text" name="parameters" value="{{if not .GameData.Parameters}}{{else}}{{.GameData.Parameters}}{{end}}">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="meta-property">Application Path</td>
+                    <td class="break-all">
+                        <input type="text" name="application_path" value="{{.GameData.ApplicationPath}}">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="meta-property">Launch Command</td>
+                    <td class="break-all">
+                        <input type="text" name="launch_command" value="{{.GameData.LaunchCommand}}">
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <button class="pure-button pure-button-primary"
+                onclick="postData()">
+            Save Changes
+        </button>
+    </div>
+{{end}}
