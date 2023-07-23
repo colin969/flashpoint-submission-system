@@ -1182,3 +1182,16 @@ func (d *mysqlDAL) NukeSessionTable(dbs DBSession) error {
 	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `DELETE from session`)
 	return err
 }
+
+// UpdateSubmissionAutofreeze sets autofreeze to a given value
+func (d *mysqlDAL) UpdateSubmissionAutofreeze(dbs DBSession, sid int64, shouldAutofreeze bool) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+		UPDATE submission SET should_autofreeze = ?
+		WHERE id = ?`,
+		shouldAutofreeze, sid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

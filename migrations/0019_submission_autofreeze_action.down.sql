@@ -1,1 +1,1 @@
-ALTER TABLE submission DROP COLUMN autofreeze_action;
+ALTER TABLE submission DROP COLUMN should_autofreeze;
