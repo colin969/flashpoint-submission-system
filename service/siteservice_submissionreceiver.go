@@ -333,6 +333,7 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 	for warningIndex, warning = range vr.CurationWarnings {
 		if strings.Contains(warning, "Curation should be frozen") {
 			shouldAutofreeze = true
+			break
 		}
 	}
 
@@ -430,6 +431,24 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 		}
 	}
 
+	// system comment for missing release date
+	if vr.Meta.ReleaseDate == nil {
+		msg := "The submission is missing release date. Please check if the release date is really unknown."
+		sc2 := &types.Comment{
+			AuthorID:     constants.SystemID,
+			SubmissionID: submissionID,
+			Message:      &msg,
+			Action:       constants.ActionSystem,
+			CreatedAt:    s.clock.Now().Add(time.Second * 2),
+		}
+
+		if err := s.dal.StoreComment(dbs, sc2); err != nil {
+			utils.LogCtx(ectx).Error(err)
+			s.SSK.SetFailed(tempName, "internal error")
+			return &destinationFilePath, imageFilePaths, 0, dberr(err)
+		}
+	}
+
 	utils.LogCtx(ctx).Debug("processing bot event...")
 
 	bc := s.convertValidatorResponseToComment(vr, shouldAutofreeze)
@@ -474,7 +493,9 @@ func (s *SiteService) convertValidatorResponseToComment(vr *types.ValidatorRespo
 	}
 
 	if shouldAutofreeze {
-		message += "\n This submission will be automatically frozen after validation.\n"
+		quip := "\n\n This submission will be automatically frozen after validation."
+		message += quip
+		approvalMessage += quip
 	}
 
 	c.Message = &message
