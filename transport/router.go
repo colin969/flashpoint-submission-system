@@ -536,7 +536,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 				muxNot(isActionMarkAsAddedForMultipleSubmissions),
 				muxNot(isAnySubmissionMarkedAsAdded),
 				muxAny(
-					muxAll(muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction), // TODO plural!
+					muxAll(muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction),
 					muxAll(muxNot(isAnySubmissionFrozen), isTrialCurator, userOwnsAllSubmissions, a.UserCanCommentAction),
 					muxAll(muxNot(isAnySubmissionFrozen), isInAudit, userOwnsAllSubmissions, a.UserCanCommentAction),
 					muxAll(isAnySubmissionFrozen, isFreezer, a.UserCanCommentAction),
