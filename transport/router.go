@@ -496,19 +496,21 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
-	router.Handle(
-		"/api/flashfreeze-receiver-resumable",
-		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleFlashfreezeReceiverResumable,
-			muxAny(isStaff, isTrialCurator, isInAudit))))).
-		Methods("POST")
+	// flashfreeze disabled for now
 
-	router.Handle(
-		"/api/flashfreeze-receiver-resumable",
-		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleReceiverResumableTestChunk,
-			muxAny(isStaff, isTrialCurator, isInAudit))))).
-		Methods("GET")
+	//router.Handle(
+	//	"/api/flashfreeze-receiver-resumable",
+	//	http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+	//		a.HandleFlashfreezeReceiverResumable,
+	//		muxAny(isStaff, isTrialCurator, isInAudit))))).
+	//	Methods("POST")
+	//
+	//router.Handle(
+	//	"/api/flashfreeze-receiver-resumable",
+	//	http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+	//		a.HandleReceiverResumableTestChunk,
+	//		muxAny(isStaff, isTrialCurator, isInAudit))))).
+	//	Methods("GET")
 
 	////////////////////////
 
