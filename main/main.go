@@ -5,6 +5,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/Dri0m/flashpoint-submission-system/authbot"
 	"github.com/Dri0m/flashpoint-submission-system/config"
 	"github.com/Dri0m/flashpoint-submission-system/database"
@@ -18,9 +20,14 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	_, err := os.Stat(".env")
+	if !os.IsNotExist(err) {
 		panic(err)
+	} else if err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			panic(err)
+		}
 	}
 	log := logging.InitLogger()
 	l := log.WithField("commit", config.EnvString("GIT_COMMIT")).WithField("runID", utils.NewRealRandomStringProvider().RandomString(8))

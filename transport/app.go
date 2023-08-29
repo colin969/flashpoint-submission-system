@@ -39,7 +39,7 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 	l.Infoln("initializing the server")
 	router := mux.NewRouter()
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", conf.Port),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", conf.Port),
 		Handler: logging.LogRequestHandler(l, router),
 	}
 
