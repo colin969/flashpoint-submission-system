@@ -249,20 +249,20 @@ func (d *mysqlDAL) SearchSubmissions(dbs DBSession, filter *types.SubmissionsFil
 			masterFilters = append(masterFilters, "(extreme = ?)")
 			masterData = append(masterData, *filter.IsExtreme)
 		}
-		if len(filter.DistinctActions) != 0 {
-			filters = append(filters, `(REGEXP_LIKE (submission_cache.distinct_actions, CONCAT(CONCAT(?)`+strings.Repeat(", '|', CONCAT(?)", len(filter.DistinctActions)-1)+`)))`)
-			for _, da := range filter.DistinctActions {
-				data = append(data, da)
-			}
-			masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
-		}
-		if len(filter.DistinctActionsNot) != 0 {
-			filters = append(filters, `(NOT REGEXP_LIKE (submission_cache.distinct_actions, CONCAT(CONCAT(?)`+strings.Repeat(", '|', CONCAT(?)", len(filter.DistinctActionsNot)-1)+`)))`)
-			for _, da := range filter.DistinctActionsNot {
-				data = append(data, da)
-			}
-			masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
-		}
+        if len(filter.DistinctActions) != 0 {
+            filters = append(filters, `(submission_cache.distinct_actions REGEXP CONCAT(CONCAT(?)`+strings.Repeat(", '|', CONCAT(?)", len(filter.DistinctActions)-1)+`))`)
+            for _, da := range filter.DistinctActions {
+                data = append(data, da)
+            }
+            masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
+        }
+        if len(filter.DistinctActionsNot) != 0 {
+            filters = append(filters, `(submission_cache.distinct_actions NOT REGEXP CONCAT(CONCAT(?)`+strings.Repeat(", '|', CONCAT(?)", len(filter.DistinctActionsNot)-1)+`))`)
+            for _, da := range filter.DistinctActionsNot {
+                data = append(data, da)
+            }
+            masterFilters = append(masterFilters, "(1 = 0)") // exclude legacy results
+        }
 		if filter.LaunchCommandFuzzy != nil { // TODO not really fuzzy is it
 			filters = append(filters, "(meta.launch_command LIKE ?)")
 			data = append(data, utils.FormatLike(*filter.LaunchCommandFuzzy))
