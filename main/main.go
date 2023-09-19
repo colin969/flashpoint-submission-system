@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"os"
 
 	"github.com/Dri0m/flashpoint-submission-system/authbot"
@@ -15,15 +16,16 @@ import (
 	"github.com/Dri0m/flashpoint-submission-system/resumableuploadservice"
 	"github.com/Dri0m/flashpoint-submission-system/transport"
 	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	_, err := os.Stat(".env")
-	if os.IsNotExist(err) {
-		panic(err)
-	} else if err == nil {
+	if os.Getenv("IN_KUBERNETES") != "" {
+		_, err := os.Stat(".env")
+		if !os.IsNotExist(err) {
+			panic(err)
+		}
+	} else {
 		err := godotenv.Load()
 		if err != nil {
 			panic(err)
