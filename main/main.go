@@ -21,7 +21,7 @@ import (
 
 func main() {
 	_, err := os.Stat(".env")
-	if !os.IsNotExist(err) {
+	if os.IsNotExist(err) {
 		panic(err)
 	} else if err == nil {
 		err := godotenv.Load()
