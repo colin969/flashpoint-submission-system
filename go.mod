@@ -1,4 +1,4 @@
-module github.com/Dri0m/flashpoint-submission-system
+module github.com/FlashpointProject/flashpoint-submission-system
 
 go 1.20
 
