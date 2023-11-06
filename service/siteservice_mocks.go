@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"database/sql"
-	"github.com/Dri0m/flashpoint-submission-system/database"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/stretchr/testify/mock"
 	"io"
 	"mime/multipart"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/database"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/stretchr/testify/mock"
 )
 
 ////////////////////////////////////////////////

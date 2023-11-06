@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -14,10 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/service"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/service"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/Masterminds/sprig"
 	"github.com/kofalt/go-memoize"
 )

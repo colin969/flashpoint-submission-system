@@ -1,6 +1,6 @@
 package authbot
 
-import "github.com/Dri0m/flashpoint-submission-system/types"
+import "github.com/FlashpointProject/flashpoint-submission-system/types"
 
 type DiscordRoleReader interface {
 	GetFlashpointRoleIDsForUser(uid int64) ([]string, error)

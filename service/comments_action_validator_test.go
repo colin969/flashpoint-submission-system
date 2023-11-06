@@ -1,9 +1,10 @@
 package service
 
 import (
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/types"
 	"testing"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
 )
 
 func Test_isActionValidForSubmission(t *testing.T) {

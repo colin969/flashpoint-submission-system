@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
 	"net/http"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 )
 
 func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int64, formAction, formMessage,

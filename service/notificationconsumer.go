@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *SiteService) RunNotificationConsumer(logger *logrus.Entry, ctx context.Context, wg *sync.WaitGroup) {

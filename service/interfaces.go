@@ -6,7 +6,7 @@ import (
 	"mime/multipart"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
 )
 
 type Validator interface {

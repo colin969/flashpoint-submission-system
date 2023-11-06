@@ -3,9 +3,9 @@ package transport
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kofalt/go-memoize"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,11 +13,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/config"
-	"github.com/Dri0m/flashpoint-submission-system/logging"
-	"github.com/Dri0m/flashpoint-submission-system/resumableuploadservice"
-	"github.com/Dri0m/flashpoint-submission-system/service"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kofalt/go-memoize"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/config"
+	"github.com/FlashpointProject/flashpoint-submission-system/logging"
+	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
+	"github.com/FlashpointProject/flashpoint-submission-system/service"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/bwmarrin/discordgo"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -33,19 +36,37 @@ type App struct {
 	decoder             *schema.Decoder
 	authMiddlewareCache *memoize.Memoizer
 	DFStorage           *DeviceFlowStorage
+	AdminModePassword   string
 }
 
 func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Pool, authBotSession, notificationBotSession *discordgo.Session, rsu *resumableuploadservice.ResumableUploadService) {
 	l.Infoln("initializing the server")
 	router := mux.NewRouter()
+	host := "0.0.0.0"
+	if conf.FlashpointSourceOnlyAdminMode {
+		host = "127.0.0.1"
+	}
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("0.0.0.0:%d", conf.Port),
+		Addr:    fmt.Sprintf("%s:%d", host, conf.Port),
 		Handler: logging.LogRequestHandler(l, router),
 	}
 
 	decoder := schema.NewDecoder()
 	decoder.ZeroEmpty(false)
 	decoder.IgnoreUnknownKeys(true)
+
+	// Generate the admin password, only used in source only admin mode
+	b := make([]byte, 12)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+
+	// Encode the byte slice as a base64 string
+	adminPass := base64.StdEncoding.EncodeToString(b)
+	if conf.FlashpointSourceOnlyAdminMode {
+		l.WithField("admin_password", adminPass).Infoln(fmt.Sprintf("generated admin password: %s", adminPass))
+	}
 
 	a := &App{
 		Conf: conf,
@@ -61,6 +82,7 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 			conf.DataPacksDir),
 		decoder:             decoder,
 		authMiddlewareCache: memoize.NewMemoizer(5*time.Second, 60*time.Minute),
+		AdminModePassword:   adminPass,
 	}
 
 	l.WithField("port", conf.Port).Infoln("starting the server...")
@@ -77,12 +99,14 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 
 	a.Service.DataPacksIndexer.Start()
 
-	l.Infoln("starting the notification consumer...")
+	if !conf.FlashpointSourceOnlyMode {
+		l.Infoln("starting the notification consumer...")
 
-	wg.Add(1)
-	go func() {
-		a.Service.RunNotificationConsumer(l, ctx, wg)
-	}()
+		wg.Add(1)
+		go func() {
+			a.Service.RunNotificationConsumer(l, ctx, wg)
+		}()
+	}
 
 	// disable memstats for now
 	//l.Infoln("starting the memstats printer...")
@@ -98,11 +122,13 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 	cancelFunc()
 	wg.Wait()
 
-	l.Infoln("closing the auth bot session...")
-	authBotSession.Close()
+	if !conf.FlashpointSourceOnlyMode {
+		l.Infoln("closing the auth bot session...")
+		authBotSession.Close()
 
-	l.Infoln("closing the notification bot session...")
-	notificationBotSession.Close()
+		l.Infoln("closing the notification bot session...")
+		notificationBotSession.Close()
+	}
 
 	l.Infoln("closing data pack indexer...")
 	a.Service.DataPacksIndexer.Stop()

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/resumableuploadservice"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/kofalt/go-memoize"
 )
 
@@ -45,7 +45,7 @@ func (s *SiteService) ReceiveSubmissionChunk(ctx context.Context, sid *int64, re
 		s.SSK.SetReceived(tempName)
 
 		go func() {
-			ctx := utils.ValueOnlyContext{ctx}
+			ctx := utils.ValueOnlyContext{Context: ctx}
 			utils.LogCtx(ctx).Debug("submission resumable upload finished")
 
 			processReceivedResumableSubmission := func() (interface{}, error) {

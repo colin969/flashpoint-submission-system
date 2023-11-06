@@ -7,11 +7,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/database"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sirupsen/logrus"
 	"hash/crc32"
 	"io"
 	"os"
@@ -20,6 +15,12 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/database"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sirupsen/logrus"
 )
 
 type ZipIndexer struct {

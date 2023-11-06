@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/database"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"golang.org/x/exp/slices"
 	"strings"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/database"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+	"golang.org/x/exp/slices"
 )
 
 // createNotification formats and stores notification

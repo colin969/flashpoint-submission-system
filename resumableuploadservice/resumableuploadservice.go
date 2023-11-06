@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 )
 
 type ResumableUploadService struct {

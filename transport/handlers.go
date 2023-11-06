@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kofalt/go-memoize"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/kofalt/go-memoize"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -1491,15 +1492,19 @@ func (a *App) HandleDeveloperTagDescFromValidator(w http.ResponseWriter, r *http
 
 func (a *App) HandleDeveloperDumpUpload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	fmt.Println("handling dev dump")
 
 	// get file from request body
 	file, _, err := r.FormFile("file")
 	if err != nil {
+		fmt.Println("handling dev BAD")
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("failed to get file from request", http.StatusBadRequest))
 		return
 	}
 	defer file.Close()
+
+	fmt.Println("got file")
 
 	// decode JSON file
 	var jsonData types.LauncherDump
@@ -1510,12 +1515,16 @@ func (a *App) HandleDeveloperDumpUpload(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	fmt.Println("decoded")
+
 	err = a.Service.DeveloperImportDatabaseJson(ctx, &jsonData)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("failed to import", http.StatusInternalServerError))
 		return
 	}
+
+	fmt.Println("dumped")
 
 	writeResponse(ctx, w, nil, http.StatusNoContent)
 }

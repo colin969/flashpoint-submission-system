@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/Dri0m/flashpoint-submission-system/service"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"github.com/gofrs/uuid"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/service"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+	"github.com/gofrs/uuid"
 )
 
 type discordUserResponse struct {

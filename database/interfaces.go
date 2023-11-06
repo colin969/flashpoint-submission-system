@@ -3,9 +3,10 @@ package database
 import (
 	"context"
 	"database/sql"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/jackc/pgx/v5"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/jackc/pgx/v5"
 )
 
 type PGDAL interface {

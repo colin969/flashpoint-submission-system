@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/database"
-	"github.com/Dri0m/flashpoint-submission-system/resumableuploadservice"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/database"
+	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/sync/errgroup"
 )

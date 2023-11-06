@@ -2,10 +2,11 @@ package authbot
 
 import (
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/types"
+	"strconv"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type bot struct {

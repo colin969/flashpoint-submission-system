@@ -1,7 +1,7 @@
 package notificationbot
 
 import (
-	"github.com/Dri0m/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )

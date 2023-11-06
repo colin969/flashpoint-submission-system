@@ -5,33 +5,56 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/service"
-	"github.com/Dri0m/flashpoint-submission-system/types"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
-	"github.com/gorilla/mux"
-	"golang.org/x/exp/slices"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/service"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+	"github.com/gorilla/mux"
+	"golang.org/x/exp/slices"
 )
 
-func (a *App) RequestWeb(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (a *App) RequestWeb(next func(http.ResponseWriter, *http.Request), slimService bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestWeb)))
+		if !a.Conf.FlashpointSourceOnlyMode || slimService {
+			next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestWeb)))
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 	}
 }
 
-func (a *App) RequestJSON(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (a *App) RequestJSON(next func(http.ResponseWriter, *http.Request), slimService bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestJSON)))
+		if !a.Conf.FlashpointSourceOnlyMode || slimService {
+			next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestJSON)))
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 	}
 }
 
-func (a *App) RequestData(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (a *App) RequestData(next func(http.ResponseWriter, *http.Request), slimService bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestData)))
+		if !a.Conf.FlashpointSourceOnlyMode || slimService {
+			next(w, r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.RequestType, constants.RequestData)))
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
+	}
+}
+
+func (a *App) AdminPassAuth(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if a.Conf.FlashpointSourceOnlyAdminMode && r.Header.Get("API_KEY") == a.AdminModePassword {
+			next(w, r)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 	}
 }
 

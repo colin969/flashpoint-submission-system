@@ -3,16 +3,17 @@ package logging
 import (
 	"context"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/config"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/config"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
+
 	"github.com/felixge/httpsnoop"
-	"github.com/gemnasium/logrus-graylog-hook/v3"
+	graylog "github.com/gemnasium/logrus-graylog-hook/v3"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )

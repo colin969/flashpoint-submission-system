@@ -2,9 +2,10 @@ package service
 
 import (
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/types"
 	"net/http"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
 )
 
 func uidIn(uid int64, ids []int64) bool {

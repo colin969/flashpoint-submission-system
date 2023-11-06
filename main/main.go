@@ -5,17 +5,19 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
 	"os"
 
-	"github.com/Dri0m/flashpoint-submission-system/authbot"
-	"github.com/Dri0m/flashpoint-submission-system/config"
-	"github.com/Dri0m/flashpoint-submission-system/database"
-	"github.com/Dri0m/flashpoint-submission-system/logging"
-	"github.com/Dri0m/flashpoint-submission-system/notificationbot"
-	"github.com/Dri0m/flashpoint-submission-system/resumableuploadservice"
-	"github.com/Dri0m/flashpoint-submission-system/transport"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
+	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/authbot"
+	"github.com/FlashpointProject/flashpoint-submission-system/config"
+	"github.com/FlashpointProject/flashpoint-submission-system/database"
+	"github.com/FlashpointProject/flashpoint-submission-system/logging"
+	"github.com/FlashpointProject/flashpoint-submission-system/notificationbot"
+	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
+	"github.com/FlashpointProject/flashpoint-submission-system/transport"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -45,16 +47,22 @@ func main() {
 	pgdb := database.OpenPostgresDB(l, conf)
 	defer pgdb.Close()
 
-	authBot := authbot.ConnectBot(l, conf.AuthBotToken)
-	notificationBot := notificationbot.ConnectBot(l, conf.NotificationBotToken)
+	var authBot *discordgo.Session
+	var notificationBot *discordgo.Session
+	var rsu *resumableuploadservice.ResumableUploadService
+	// Skip some extra services when in FP Source Only mode
+	if !conf.FlashpointSourceOnlyMode {
+		authBot = authbot.ConnectBot(l, conf.AuthBotToken)
+		notificationBot = notificationbot.ConnectBot(l, conf.NotificationBotToken)
 
-	l.Infoln("connecting to the resumable upload service")
-	rsu, err := resumableuploadservice.New(conf.ResumableUploadDirFullPath)
-	if err != nil {
-		l.Fatal(err)
+		l.Infoln("connecting to the resumable upload service")
+		rsu, err := resumableuploadservice.New(conf.ResumableUploadDirFullPath)
+		if err != nil {
+			l.Fatal(err)
+		}
+		defer rsu.Close()
+		l.Infoln("resumable upload service connected")
 	}
-	defer rsu.Close()
-	l.Infoln("resumable upload service connected")
 
 	transport.InitApp(l, conf, db, pgdb, authBot, notificationBot, rsu)
 }

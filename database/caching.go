@@ -3,10 +3,11 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Dri0m/flashpoint-submission-system/constants"
-	"github.com/Dri0m/flashpoint-submission-system/utils"
 	"strings"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 )
 
 func (d *mysqlDAL) UpdateSubmissionCacheTable(dbs DBSession, sid int64) error {
