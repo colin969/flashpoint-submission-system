@@ -1711,7 +1711,11 @@ func (d *postgresDAL) DeleteGame(dbs PGDBSession, gameId string, uid int64, reas
 				if err != nil {
 					return err
 				}
-				err = os.Rename(existingFileName, newFilename)
+				err = utils.CopyFile(existingFileName, newFilename)
+				if err != nil {
+					return err
+				}
+				err = os.Remove(existingFileName)
 				if err != nil {
 					return err
 				}
@@ -1779,7 +1783,11 @@ func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, rea
 				if err != nil {
 					return err
 				}
-				err = os.Rename(existingFileName, newFilename)
+				err = utils.CopyFile(existingFileName, newFilename)
+				if err != nil {
+					return err
+				}
+				err = os.Remove(existingFileName)
 				if err != nil {
 					return err
 				}
