@@ -55,8 +55,9 @@ const (
 )
 
 type ClientApplication struct {
-	ClientId string `json:"client_id"`
-	Name     string `json:"name"`
+	ClientId string   `json:"client_id"`
+	Name     string   `json:"name"`
+	Scopes   []string `json:"scopes"`
 }
 
 type SessionInfo struct {

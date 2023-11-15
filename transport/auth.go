@@ -46,6 +46,7 @@ var clientApps = []types.ClientApplication{
 	{
 		ClientId: "flashpoint-launcher",
 		Name:     "Flashpoint Launcher",
+		Scopes:   []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameDataEdit},
 	},
 }
 
@@ -372,14 +373,15 @@ func (a *App) HandleOauthToken(w http.ResponseWriter, r *http.Request) {
 			// Filter out invalid scopes
 			var validScopes []string
 			for _, scopeStr := range strings.Split(scope, " ") {
-				for _, authScope := range authScopes {
-					if scopeStr == authScope.Name {
+				for _, allowedClientScope := range client.Scopes {
+					if scopeStr == allowedClientScope {
 						validScopes = append(validScopes, scopeStr)
 					}
 				}
 			}
 			scope = strings.Join(validScopes, " ")
 			if scope == "" {
+				// No valid scopes found, but scope given, give advice
 				scopeNames := make([]string, len(authScopes))
 				for i, authScope := range authScopes {
 					scopeNames[i] = authScope.Name
