@@ -88,6 +88,68 @@
             </button>
         </form>
 
+        <div class="horizontal-rule"></div>
+
+        <h3>Sessions</h3>
+
+        <div class="sessions">
+            Fetching Sessions...
+        </div>
+
+        <script>
+            async function deleteSession(sessionId) {
+                const res = await fetch("/api/profile/session/" + sessionId, {
+                    method: "DELETE"
+                })
+                if (res.status === 200) {
+                    fetchSessions()
+                } else {
+                    alert("Failed to delete session.")
+                }
+            }
+
+            async function fetchSessions() {
+                const res = await fetch("/api/profile/sessions")
+                const data = await res.json()
+                const sessions = data.sessions
+                const sessionsDiv = document.querySelector(".sessions")
+                sessionsDiv.innerHTML = ""
+                for (const session of sessions) {
+                    const sessionDiv = document.createElement("div")
+                    sessionDiv.classList.add("session")
+                    sessionDiv.innerHTML = `
+                        <table>
+                            <tr>
+                                <td class="session-field-name">Client</th>
+                                <td>${session.client}</td>
+                            </tr>
+                            <tr>
+                                <td class="session-field-name">IP</th>
+                                <td>${session.ip_addr}</td>
+                            </tr>
+                            <tr>
+                                <td class="session-field-name">Scope</th>
+                                <td>${session.scope}</td>
+                            </tr>
+                            <tr>
+                                <td class="session-field-name">Expires at</th>
+                                <td>${(new Date(session.expires_at * 1000)).toUTCString()}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button type="button" class="pure-button button-delete" onclick="deleteSession('${session.id}')">Delete</button>
+                                </td>
+                            </tr>
+                        </table>
+                    `
+                    sessionsDiv.appendChild(sessionDiv)
+                }
+            }
+            document.addEventListener("DOMContentLoaded", function() {
+                fetchSessions()
+            })
+        </script>
+
         <script>
             let maxWidth = localStorage.getItem("site-max-width")
             if (maxWidth === null) {

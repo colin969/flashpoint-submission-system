@@ -8,9 +8,11 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/logging"
 	"github.com/FlashpointProject/flashpoint-submission-system/service"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/FlashpointProject/flashpoint-submission-system/utils"
@@ -38,6 +40,64 @@ type StateKeeper struct {
 type State struct {
 	Nonce string `json:"nonce"`
 	Dest  string `json:"dest"`
+}
+
+var clientApps = []types.ClientApplication{
+	{
+		ClientId: "flashpoint-launcher",
+		Name:     "Flashpoint Launcher",
+	},
+}
+
+var authScopes = []types.AuthScope{
+	{
+		Name:        types.AuthScopeIdentity,
+		Description: "Read your username, avatar, Flashpoint discord server roles and FPFSS notification settings",
+	},
+	{
+		Name:        types.AuthScopeSubmissionRead,
+		Description: "Read basic submission information (comments, metadata)",
+	},
+	{
+		Name:        types.AuthScopeSubmissionReadFiles,
+		Description: "Read and download submission files",
+	},
+	{
+		Name:        types.AuthScopeSubmissionEdit,
+		Description: "Edit submission information",
+	},
+	{
+		Name:        types.AuthScopeSubmissionUpload,
+		Description: "Upload new submission files",
+	},
+	{
+		Name:        types.AuthScopeFlashfreezeRead,
+		Description: "Read basic flashfreeze information (archive metadata)",
+	},
+	{
+		Name:        types.AuthScopeFlashfreezeReadFiles,
+		Description: "Read and download flashfreeze files / archive directories",
+	},
+	{
+		Name:        types.AuthScopeFlashfreezeUpload,
+		Description: "Upload new flashfreeze files",
+	},
+	{
+		Name:        types.AuthScopeGameDataRead,
+		Description: "Read Game Data info / file indexes",
+	},
+	{
+		Name:        types.AuthScopeGameDataEdit,
+		Description: "Edit Game Data info",
+	},
+	{
+		Name:        types.AuthScopeGameRead,
+		Description: "Read Game metadata",
+	},
+	{
+		Name:        types.AuthScopeGameEdit,
+		Description: "Edit Game metadata",
+	},
 }
 
 // Generate generates state and returns base64-encoded form
@@ -179,7 +239,8 @@ func (a *App) HandleDiscordCallback(w http.ResponseWriter, r *http.Request) {
 		MFAEnabled:    discordUserResp.MFAEnabled,
 	}
 
-	authToken, err := a.Service.SaveUser(ctx, discordUser)
+	ipAddr := logging.RequestGetRemoteAddress(r)
+	authToken, err := a.Service.SaveUser(ctx, discordUser, ipAddr)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, dberr(err))
@@ -227,12 +288,7 @@ func (a *App) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/web", http.StatusFound)
 }
 
-func (a *App) HandlePollDeviceAuth(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	query := r.URL.Query()
-	deviceCode := query.Get("device_code")
-
+func (a *App) HandlePollDeviceAuth(w http.ResponseWriter, ctx context.Context, deviceCode string) {
 	// Get device auth token from storage
 	dfToken := a.DFStorage.GetUserAuthTokenByDevice(deviceCode)
 	if dfToken == nil {
@@ -280,29 +336,81 @@ func (a *App) HandlePollDeviceAuth(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *App) HandleNewDeviceToken(w http.ResponseWriter, r *http.Request) {
+func (a *App) HandleOauthToken(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	if r.Method == "POST" {
-		a.HandlePollDeviceAuth(w, r)
-		return
-	}
-
-	token, err := a.DFStorage.NewToken()
+	err := r.ParseForm()
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		writeError(ctx, w, perr("failed to create token", http.StatusInternalServerError))
+		writeError(ctx, w, perr("failed to parse form", http.StatusBadRequest))
 		return
 	}
 
-	writeResponse(ctx, w, token, http.StatusOK)
+	// Validate client application
+	client_id := r.Form.Get("client_id")
+	if client_id == "" {
+		writeError(ctx, w, perr("missing client_id", http.StatusBadRequest))
+		return
+	}
+	var client *types.ClientApplication
+	for _, app := range clientApps {
+		if app.ClientId == client_id {
+			client = &app
+			break
+		}
+	}
+	if client == nil {
+		writeError(ctx, w, perr("invalid client_id", http.StatusBadRequest))
+		return
+	}
+
+	deviceCode := r.Form.Get("device_code")
+	if deviceCode == "" {
+		// No device code given, must be requesting a new one
+		// Read list of scopes, handle default case
+		scope := r.Form.Get("scope")
+		if scope != "" {
+			// Filter out invalid scopes
+			var validScopes []string
+			for _, scopeStr := range strings.Split(scope, " ") {
+				for _, authScope := range authScopes {
+					if scopeStr == authScope.Name {
+						validScopes = append(validScopes, scopeStr)
+					}
+				}
+			}
+			scope = strings.Join(validScopes, " ")
+			if scope == "" {
+				scopeNames := make([]string, len(authScopes))
+				for i, authScope := range authScopes {
+					scopeNames[i] = authScope.Name
+				}
+				writeError(ctx, w, perr("invalid scope: Must be of ["+strings.Join(scopeNames, ", ")+"]", http.StatusBadRequest))
+				return
+			}
+		} else {
+			scope = types.AuthScopeIdentity
+		}
+		token, err := a.DFStorage.NewToken(scope, client)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
+			writeError(ctx, w, perr("failed to create token", http.StatusInternalServerError))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		writeResponse(ctx, w, token, http.StatusOK)
+	} else {
+		// Device code given, must be polling
+		a.HandlePollDeviceAuth(w, ctx, deviceCode)
+		return
+	}
 }
 
 func (a *App) HandleApproveDevice(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	query := r.URL.Query()
-	code := query.Get("code")
+	code := query.Get("user_code")
 
 	// Get device auth token from storage
 	token, err := a.DFStorage.Get(code)
@@ -318,7 +426,8 @@ func (a *App) HandleApproveDevice(w http.ResponseWriter, r *http.Request) {
 		if action == "approve" {
 			// Create a new auth token
 			uid := utils.UserID(ctx)
-			authToken, err := a.Service.GenAuthToken(ctx, uid)
+			ipAddr := logging.RequestGetRemoteAddress(r)
+			authToken, err := a.Service.GenAuthToken(ctx, uid, token.Scope, token.ClientApplication.ClientId, ipAddr)
 			if err != nil {
 				utils.LogCtx(ctx).Error(err)
 				writeError(ctx, w, perr("failed to create new auth token", http.StatusInternalServerError))
@@ -350,6 +459,15 @@ func (a *App) HandleApproveDevice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// GET Ask for user response
+	// Load scopes
+	var scopesList []types.AuthScope
+	for _, scope := range strings.Split(token.Scope, " ") {
+		for _, authScope := range authScopes {
+			if scope == authScope.Name {
+				scopesList = append(scopesList, authScope)
+			}
+		}
+	}
 	bpd, err := a.Service.GetBasePageData(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -366,6 +484,7 @@ func (a *App) HandleApproveDevice(w http.ResponseWriter, r *http.Request) {
 		BasePageData: *bpd,
 		Token:        token,
 		States:       states,
+		Scopes:       scopesList,
 	}
 
 	a.RenderTemplates(ctx, w, r, pageData,
@@ -417,7 +536,7 @@ func (s *DeviceFlowStorage) GetUserAuthTokens(uid int64) *[]DeviceFlowUserAuthTo
 	return s.authTokens[uid]
 }
 
-func (s *DeviceFlowStorage) NewToken() (*types.DeviceFlowToken, error) {
+func (s *DeviceFlowStorage) NewToken(scope string, client *types.ClientApplication) (*types.DeviceFlowToken, error) {
 	// Generate the code
 	deviceCode := make([]byte, 32)
 	for i := range deviceCode {
@@ -433,13 +552,16 @@ func (s *DeviceFlowStorage) NewToken() (*types.DeviceFlowToken, error) {
 	expiresAt = expiresAt.Add(900 * time.Second)
 
 	token := types.DeviceFlowToken{
-		DeviceCode:      string(deviceCode),
-		UserCode:        string(userCode),
-		VerificationURL: s.verificationUrl,
-		ExpiresIn:       900,
-		ExpiresAt:       expiresAt,
-		Interval:        3,
-		FlowState:       types.DeviceFlowPending,
+		DeviceCode:              string(deviceCode),
+		Scope:                   scope,
+		UserCode:                string(userCode),
+		VerificationURL:         s.verificationUrl,
+		VerificationURLComplete: s.verificationUrl + "?user_code=" + string(userCode),
+		ExpiresIn:               900,
+		ExpiresAt:               expiresAt,
+		Interval:                3,
+		FlowState:               types.DeviceFlowPending,
+		ClientApplication:       client,
 	}
 
 	err := s.Save(&token)

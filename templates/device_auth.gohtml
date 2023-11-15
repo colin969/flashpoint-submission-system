@@ -2,7 +2,12 @@
     <div class="content">
         {{if eq .Token.FlowState .States.Pending}}
             <h1>Approve Device?</h1>
-            <div>Application will have access to make actions on FPFSS on your behalf.</div>
+            <div class="device-auth-prompt"><div class="device-auth-client">{{.Token.ClientApplication.Name}}</div> will be ableP to:</div>
+            <div class="device-auth-scopes">
+                {{range .Scopes}}
+                    <div class="device-auth-scope-description">{{.Description}}</div>
+                {{end}}
+            </div>
             <div>
                 <button class="pure-button pure-button-primary button-approve"
                     onclick="doDeviceFlowAction({{.Token.UserCode}}, 'approve')">Approve

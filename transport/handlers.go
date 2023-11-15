@@ -302,6 +302,46 @@ func (a *App) HandleRootPage(w http.ResponseWriter, r *http.Request) {
 	a.RenderTemplates(ctx, w, r, pageData, "templates/root.gohtml")
 }
 
+func (a *App) HandleSessionsPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+
+	sessions, err := a.Service.GetSessions(ctx, uid)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, map[string]interface{}{"sessions": sessions}, http.StatusOK)
+	return
+}
+
+func (a *App) HandleSessionPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+	params := mux.Vars(r)
+	sessionID := params[constants.ResourceKeySessionID]
+
+	if sessionID == "" {
+		writeError(ctx, w, perr("invalid session id format", http.StatusBadRequest))
+		return
+	}
+
+	sessionIDInt, err := strconv.ParseInt(sessionID, 10, 64)
+	if err != nil {
+		writeError(ctx, w, perr("invalid session id format", http.StatusBadRequest))
+		return
+	}
+
+	err = a.Service.RevokeSession(ctx, uid, sessionIDInt)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (a *App) HandleProfilePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := utils.UserID(ctx)

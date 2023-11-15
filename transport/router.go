@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -89,11 +90,11 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	// device flow
 	router.Handle(
 		"/auth/token",
-		http.HandlerFunc(a.RequestJSON(a.HandleNewDeviceToken, false))).
-		Methods("GET", "POST")
+		http.HandlerFunc(a.RequestJSON(a.HandleOauthToken, false))).
+		Methods("POST")
 	router.Handle(
 		"/auth/device",
-		http.HandlerFunc(a.UserAuthMux(a.RequestWeb(a.HandleApproveDevice, false), muxAny(isStaff, isTrialCurator, isInAudit)))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleApproveDevice, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET", "POST")
 
 	// pages
@@ -119,7 +120,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/web/submit",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(
-			a.HandleSubmitPage, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+			a.RequestScope(a.HandleSubmitPage, types.AuthScopeSubmissionUpload),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
 	router.Handle(
@@ -130,12 +132,13 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/web/flashfreeze/submit",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(
-			a.HandleFlashfreezeSubmitPage, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+			a.RequestScope(a.HandleFlashfreezeSubmitPage, types.AuthScopeFlashfreezeUpload),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
 	////////////////////////
 
-	f := a.UserAuthMux(a.HandleProfilePage)
+	f := a.UserAuthMux(a.RequestScope(a.HandleProfilePage, types.AuthScopeIdentity))
 
 	router.Handle(
 		"/web/profile",
@@ -147,10 +150,25 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(f, false))).
 		Methods("GET")
 
+	f = a.UserAuthMux(a.RequestScope(a.HandleSessionsPage, types.AuthScopeAll))
+
+	router.Handle(
+		"/api/profile/sessions",
+		http.HandlerFunc(a.RequestJSON(f, false))).
+		Methods("GET")
+
+	f = a.UserAuthMux(a.RequestScope(a.HandleSessionPage, types.AuthScopeAll))
+
+	router.Handle(
+		fmt.Sprintf("/api/profile/session/{%s}", constants.ResourceKeySessionID),
+		http.HandlerFunc(a.RequestJSON(f, false))).
+		Methods("DELETE")
+
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleSubmissionsPage, muxAny(isStaff, isTrialCurator, isInAudit))
+		a.RequestScope(a.HandleSubmissionsPage, types.AuthScopeSubmissionRead),
+		muxAny(isStaff, isTrialCurator, isInAudit))
 
 	router.Handle(
 		"/web/submissions",
@@ -177,7 +195,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
-		a.HandlePostTag, muxAny(isDeleter))
+		a.RequestScope(a.HandlePostTag, types.AuthScopeTagEdit),
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/api/tag/{%s}", constants.ResourceKeyTagID),
@@ -198,7 +217,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
-		a.HandleTagEditPage, muxAny(isDeleter))
+		a.RequestScope(a.HandleTagEditPage, types.AuthScopeTagEdit),
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/web/tag/{%s}/edit", constants.ResourceKeyTagID),
@@ -263,7 +283,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleGamePage, muxAny(isStaff, isTrialEditor))
+		a.RequestScope(a.HandleGamePage, types.AuthScopeGameRead),
+		muxAny(isStaff, isTrialEditor))
 
 	router.Handle(
 		fmt.Sprintf("/web/game/{%s}", constants.ResourceKeyGameID),
@@ -280,13 +301,18 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(f, true))).
 		Methods("GET")
 
+	f = a.UserAuthMux(
+		a.RequestScope(a.HandleGamePage, types.AuthScopeGameEdit),
+		muxAny(isStaff, isTrialEditor))
+
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}", constants.ResourceKeyGameID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleGameDataIndexPage, muxAny(isTrialCurator, isStaff))
+		a.RequestScope(a.HandleGameDataIndexPage, types.AuthScopeGameDataRead),
+		muxAny(isTrialCurator, isStaff))
 
 	router.Handle(
 		fmt.Sprintf("/web/game/{%s}/data/{%s}/index", constants.ResourceKeyGameID, constants.ResourceKeyGameDataDate),
@@ -299,7 +325,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
-		a.HandleGameDataEditPage, muxAny(isStaff))
+		a.RequestScope(a.HandleGameDataEditPage, types.AuthScopeGameDataEdit),
+		muxAny(isStaff))
 
 	router.Handle(
 		fmt.Sprintf("/web/game/{%s}/data/{%s}/edit", constants.ResourceKeyGameID, constants.ResourceKeyGameDataDate),
@@ -312,7 +339,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleDeleteGame, muxAny(isDeleter))
+		a.RequestScope(a.HandleDeleteGame, types.AuthScopeAll),
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}", constants.ResourceKeyGameID),
@@ -320,7 +348,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("DELETE")
 
 	f = a.UserAuthMux(
-		a.HandleRestoreGame, muxAny(isDeleter))
+		a.RequestScope(a.HandleRestoreGame, types.AuthScopeAll),
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/restore", constants.ResourceKeyGameID),
@@ -328,7 +357,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
-		a.HandleGameLogo, muxAny(isStaff))
+		a.RequestScope(a.HandleGameLogo, types.AuthScopeGameEdit),
+		muxAny(isStaff))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/logo", constants.ResourceKeyGameID),
@@ -336,7 +366,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleGameScreenshot, muxAny(isStaff))
+		a.RequestScope(a.HandleGameScreenshot, types.AuthScopeGameDataEdit),
+		muxAny(isStaff))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/screenshot", constants.ResourceKeyGameID),
@@ -344,7 +375,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleFreezeGame, muxAny(isFreezer))
+		a.RequestScope(a.HandleFreezeGame, types.AuthScopeAll),
+		muxAny(isFreezer))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/freeze", constants.ResourceKeyGameID),
@@ -352,7 +384,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.HandleUnfreezeGame, muxAny(isFreezer))
+		a.RequestScope(a.HandleUnfreezeGame, types.AuthScopeAll),
+		muxAny(isFreezer))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/unfreeze", constants.ResourceKeyGameID),
@@ -362,7 +395,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleMatchingIndexHash, muxAny(isStaff, isTrialCurator))
+		a.RequestScope(a.HandleMatchingIndexHash, types.AuthScopeHashCheck),
+		muxAny(isStaff, isTrialCurator))
 
 	router.Handle(
 		fmt.Sprintf("/api/index/hash/{%s}", constants.ResourceKeyHash),
@@ -372,7 +406,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleMySubmissionsPage, muxAny(isStaff, isTrialCurator, isInAudit))
+		a.RequestScope(a.HandleMySubmissionsPage, types.AuthScopeSubmissionRead),
+		muxAny(isStaff, isTrialCurator, isInAudit))
 
 	router.Handle(
 		"/web/my-submissions",
@@ -387,7 +422,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleViewSubmissionPage,
+		a.RequestScope(a.HandleViewSubmissionPage, types.AuthScopeSubmissionRead),
 		muxAny(isStaff, isTrialCurator, isInAudit))
 
 	router.Handle(
@@ -401,7 +436,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	f = a.UserAuthMux(
-		a.HandleApplyContentPatchPage,
+		a.RequestScope(a.HandleApplyContentPatchPage, types.AuthScopeAll),
 		isDeleter)
 
 	router.Handle(
@@ -412,7 +447,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleViewSubmissionFilesPage,
+		a.RequestScope(a.HandleViewSubmissionFilesPage, types.AuthScopeSubmissionReadFiles),
 		muxAny(isStaff, isTrialCurator, isInAudit))
 
 	router.Handle(
@@ -428,7 +463,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.HandleSearchFlashfreezePage,
+		a.RequestScope(a.HandleSearchFlashfreezePage, types.AuthScopeFlashfreezeReadFiles),
 		muxAny(isStaff, isTrialCurator, isInAudit))
 
 	router.Handle(
@@ -478,7 +513,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/api/submission-receiver-resumable",
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSubmissionReceiverResumable, muxAny(
+			a.RequestScope(a.HandleSubmissionReceiverResumable, types.AuthScopeSubmissionUpload),
+			muxAny(
 				isStaff,
 				isTrialCurator,
 				muxAll(isInAudit, userHasNoSubmissions))), false))).
@@ -487,7 +523,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission-receiver-resumable/{%s}", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSubmissionReceiverResumable, muxAny(
+			a.RequestScope(a.HandleSubmissionReceiverResumable, types.AuthScopeSubmissionUpload),
+			muxAny(
 				isStaff,
 				muxAll(isTrialCurator, userOwnsSubmission),
 				muxAll(isInAudit, userOwnsSubmission))), false))).
@@ -496,7 +533,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/api/submission-receiver-resumable",
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleReceiverResumableTestChunk, muxAny(
+			a.RequestScope(a.HandleReceiverResumableTestChunk, types.AuthScopeSubmissionUpload),
+			muxAny(
 				isStaff,
 				isTrialCurator,
 				muxAll(isInAudit, userHasNoSubmissions))), false))).
@@ -505,7 +543,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission-receiver-resumable/{%s}", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleReceiverResumableTestChunk, muxAny(
+			a.RequestScope(a.HandleReceiverResumableTestChunk, types.AuthScopeSubmissionUpload),
+			muxAny(
 				isStaff,
 				muxAll(isTrialCurator, userOwnsSubmission),
 				muxAll(isInAudit, userOwnsSubmission))), false))).
@@ -534,7 +573,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission-batch/{%s}/comment", constants.ResourceKeySubmissionIDs),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleCommentReceiverBatch,
+			a.RequestScope(a.HandleCommentReceiverBatch, types.AuthScopeAll),
 			muxAll(
 				muxAny(
 					muxAll(muxNot(isAnySubmissionFrozen), isStaff, a.UserCanCommentAction),
@@ -546,13 +585,15 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	router.Handle("/api/notification-settings",
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleUpdateNotificationSettings, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+			a.RequestScope(a.HandleUpdateNotificationSettings, types.AuthScopeProfileEdit),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("PUT")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/subscription-settings", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleUpdateSubscriptionSettings, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+			a.RequestScope(a.HandleUpdateSubscriptionSettings, types.AuthScopeProfileEdit),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("PUT")
 
 	////////////////////////
@@ -560,26 +601,26 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/web/developer",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(
-			a.HandleDeveloperPage, muxAny(isGod, isColin)), false))).
+			a.RequestScope(a.HandleDeveloperPage, types.AuthScopeAll), muxAny(isGod, isColin)), false))).
 		Methods("GET")
 
 	if a.Conf.FlashpointSourceOnlyAdminMode {
 		router.Handle(
 			"/api/developer/submit_dump",
-			http.HandlerFunc(a.RequestWeb(a.AdminPassAuth(a.HandleDeveloperDumpUpload), true))).
+			http.HandlerFunc(a.RequestWeb(a.AdminPassAuth(a.RequestScope(a.HandleDeveloperDumpUpload, types.AuthScopeAll)), true))).
 			Methods("POST")
 	} else {
 		router.Handle(
 			"/api/developer/submit_dump",
 			http.HandlerFunc(a.RequestWeb(a.UserAuthMux(
-				a.HandleDeveloperDumpUpload, muxAny(isGod, isColin)), false))).
+				a.RequestScope(a.HandleDeveloperDumpUpload, types.AuthScopeAll), muxAny(isGod, isColin)), false))).
 			Methods("POST")
 	}
 
 	router.Handle(
 		"/api/developer/tag_desc_from_validator",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(
-			a.HandleDeveloperTagDescFromValidator, muxAny(isGod, isColin)), false))).
+			a.RequestScope(a.HandleDeveloperTagDescFromValidator, types.AuthScopeAll), muxAny(isGod, isColin)), false))).
 		Methods("GET")
 
 	////////////////////////
@@ -591,7 +632,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
-			a.HandleDownloadSubmissionFile,
+			a.RequestScope(a.HandleDownloadSubmissionFile, types.AuthScopeSubmissionReadFiles),
 			muxAny(
 				muxAll(muxNot(isSubmissionFrozen), isStaff),
 				muxAll(muxNot(isSubmissionFrozen), isTrialCurator),
@@ -603,7 +644,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/data/submission-file-batch/{%s}", constants.ResourceKeyFileIDs),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
-			a.HandleDownloadSubmissionBatch, muxAny(
+			a.RequestScope(a.HandleDownloadSubmissionBatch, types.AuthScopeSubmissionReadFiles),
+			muxAny(
 				muxAll(muxNot(isAnySubmissionFileFrozen), isStaff),
 				muxAll(muxNot(isAnySubmissionFileFrozen), isTrialCurator),
 				muxAll(muxNot(isAnySubmissionFileFrozen), isInAudit),
@@ -614,7 +656,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/data/submission/{%s}/curation-image/{%s}.png", constants.ResourceKeySubmissionID, constants.ResourceKeyCurationImageID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
-			a.HandleDownloadCurationImage,
+			a.RequestScope(a.HandleDownloadCurationImage, types.AuthScopeSubmissionRead),
 			muxAny(
 				muxAll(muxNot(isSubmissionFrozen), isStaff),
 				muxAll(muxNot(isSubmissionFrozen), isTrialCurator),
@@ -626,7 +668,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/data/flashfreeze/file/{%s}", constants.ResourceKeyFlashfreezeRootFileID),
 		http.HandlerFunc(a.RequestData(a.UserAuthMux(
-			a.HandleDownloadFlashfreezeRootFile,
+			a.RequestScope(a.HandleDownloadFlashfreezeRootFile, types.AuthScopeSubmissionReadFiles),
 			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
@@ -634,19 +676,22 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/file/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyFileID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteSubmissionFile, muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
+			a.RequestScope(a.HandleSoftDeleteSubmissionFile, types.AuthScopeAll),
+			muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
 		Methods("DELETE")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteSubmission, muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
+			a.RequestScope(a.HandleSoftDeleteSubmission, types.AuthScopeAll),
+			muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
 		Methods("DELETE")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/comment/{%s}", constants.ResourceKeySubmissionID, constants.ResourceKeyCommentID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleSoftDeleteComment, muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
+			a.RequestScope(a.HandleSoftDeleteComment, types.AuthScopeAll),
+			muxAll(muxNot(isSubmissionFrozen), isDeleter)), false))).
 		Methods("DELETE")
 
 	// bot override
@@ -654,7 +699,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/override", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleOverrideBot, muxAny(isDeleter, isStaff)), false))).
+			a.RequestScope(a.HandleOverrideBot, types.AuthScopeAll),
+			muxAny(isDeleter, isStaff)), false))).
 		Methods("POST")
 
 	// freeze
@@ -662,31 +708,39 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/freeze", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleFreezeSubmission, muxAll(isFreezer)), false))).
+			a.RequestScope(a.HandleFreezeSubmission, types.AuthScopeAll),
+			muxAll(isFreezer)), false))).
 		Methods("POST")
 
 	router.Handle(
 		fmt.Sprintf("/api/submission/{%s}/unfreeze", constants.ResourceKeySubmissionID),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.HandleUnfreezeSubmission, muxAll(isFreezer)), false))).
+			a.RequestScope(a.HandleUnfreezeSubmission, types.AuthScopeAll),
+			muxAll(isFreezer)), false))).
 		Methods("POST")
 
 	// user statistics
 
 	router.Handle(
 		"/api/users",
-		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.HandleGetUsers, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleGetUsers, types.AuthScopeUsersRead),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
 	router.Handle(
 		fmt.Sprintf("/api/user-statistics/{%s}", constants.ResourceKeyUserID),
-		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.HandleGetUserStatistics, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleGetUserStatistics, types.AuthScopeUsersRead),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
 	// upload status
 	router.Handle(
 		fmt.Sprintf("/api/upload-status/{%s}", constants.ResourceKeyTempName),
-		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.HandleGetUploadProgress, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleGetUploadProgress, types.AuthScopeSubmissionUpload),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
 	////////////////////////
@@ -694,39 +748,39 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	// god tools
 
 	router.Handle("/web/internal",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleInternalPage, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleInternalPage, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/update-master-db",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleUpdateMasterDB, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleUpdateMasterDB, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/flashfreeze/ingest",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleIngestFlashfreeze, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleIngestFlashfreeze, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/recompute-submission-cache-all",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleRecomputeSubmissionCacheAll, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleRecomputeSubmissionCacheAll, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/flashfreeze/ingest-unknown-files",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleIngestUnknownFlashfreeze, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleIngestUnknownFlashfreeze, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/flashfreeze/index-unindexed-files",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleIndexUnindexedFlashfreeze, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleIndexUnindexedFlashfreeze, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/delete-user-sessions",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleDeleteUserSessions, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleDeleteUserSessions, types.AuthScopeAll), isGod), false))).
 		Methods("POST")
 
 	router.Handle("/api/internal/send-reminders-about-requested-changes",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleSendRemindersAboutRequestedChanges, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleSendRemindersAboutRequestedChanges, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	router.Handle("/api/internal/nuke-session-table",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleNukeSessionTable, isGod), false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleNukeSessionTable, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
 	err := srv.ListenAndServe()

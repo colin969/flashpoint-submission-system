@@ -160,4 +160,5 @@ type DeviceAuthPageData struct {
 	BasePageData
 	Token  *DeviceFlowToken
 	States DeviceAuthStates
+	Scopes []AuthScope
 }

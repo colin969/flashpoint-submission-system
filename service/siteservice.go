@@ -831,6 +831,45 @@ func (s *SiteService) GetSubmissionsFilesPageData(ctx context.Context, sid int64
 	return pageData, nil
 }
 
+func (s *SiteService) GetSessions(ctx context.Context, uid int64) ([]*types.SessionInfo, error) {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer dbs.Rollback()
+
+	sessions, err := s.dal.GetSessions(dbs, uid)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
+	return sessions, nil
+}
+
+func (s *SiteService) RevokeSession(ctx context.Context, uid int64, sessionID int64) error {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	err = s.dal.RevokeSession(dbs, uid, sessionID)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
+
 func (s *SiteService) GetSubmissionsPageData(ctx context.Context, filter *types.SubmissionsFilter) (*types.SubmissionsPageData, error) {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
@@ -892,21 +931,21 @@ func (s *SiteService) GetSubmissionFiles(ctx context.Context, sfids []int64) ([]
 	return sfs, nil
 }
 
-func (s *SiteService) GetUIDFromSession(ctx context.Context, key string) (int64, bool, error) {
+func (s *SiteService) GetSessionAuthInfo(ctx context.Context, key string) (*types.SessionInfo, bool, error) {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		return 0, false, dberr(err)
+		return nil, false, dberr(err)
 	}
 	defer dbs.Rollback()
 
-	uid, ok, err := s.dal.GetUIDFromSession(dbs, key)
+	info, ok, err := s.dal.GetSessionAuthInfo(dbs, key)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		return 0, false, dberr(err)
+		return nil, false, dberr(err)
 	}
 
-	return uid, ok, nil
+	return info, ok, nil
 }
 
 func (s *SiteService) SoftDeleteSubmissionFile(ctx context.Context, sfid int64, deleteReason string) error {
@@ -1075,7 +1114,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	return nil
 }
 
-func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser) (*authToken, error) {
+func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, ipAddr string) (*authToken, error) {
 	getServerRoles := func() (interface{}, error) {
 		return s.authBot.GetFlashpointRoles()
 	}
@@ -1169,7 +1208,7 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 		return nil, err
 	}
 
-	if err = s.dal.StoreSession(dbs, authToken.Secret, discordUser.ID, s.sessionExpirationSeconds); err != nil {
+	if err = s.dal.StoreSession(dbs, authToken.Secret, discordUser.ID, s.sessionExpirationSeconds, "all", "FPFSS", ipAddr); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
 	}
@@ -1182,7 +1221,7 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 	return authToken, nil
 }
 
-func (s *SiteService) GenAuthToken(ctx context.Context, uid int64) (map[string]string, error) {
+func (s *SiteService) GenAuthToken(ctx context.Context, uid int64, scope string, client string, ipAddr string) (map[string]string, error) {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -1196,7 +1235,7 @@ func (s *SiteService) GenAuthToken(ctx context.Context, uid int64) (map[string]s
 		return nil, err
 	}
 
-	if err = s.dal.StoreSession(dbs, authToken.Secret, uid, s.sessionExpirationSeconds); err != nil {
+	if err = s.dal.StoreSession(dbs, authToken.Secret, uid, s.sessionExpirationSeconds, scope, client, ipAddr); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
 	}

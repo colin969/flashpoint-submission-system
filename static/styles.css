@@ -731,3 +731,34 @@ video {
     font-family: monospace;
     font-size: 2rem;
 }
+
+.device-auth-prompt {
+    font-size: 1.1rem;
+}
+
+.device-auth-client {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.device-auth-scopes {
+    margin: 1rem;
+}
+
+.device-auth-scope-description::before {
+    content: "• ";
+}
+
+.device-auth-scope-description {
+    font-size: 1.1rem;
+}
+
+.session {
+    margin: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid;
+}
+
+.session-field-name {
+    font-weight: bold;
+}

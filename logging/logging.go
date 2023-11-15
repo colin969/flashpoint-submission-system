@@ -75,7 +75,7 @@ func LogRequestHandler(l *logrus.Entry, h http.Handler) http.Handler {
 			userAgent: r.Header.Get("User-Agent"),
 		}
 
-		ri.ipaddr = requestGetRemoteAddress(r)
+		ri.ipaddr = RequestGetRemoteAddress(r)
 
 		// this runs handler h and captures information about
 		// HTTP request
@@ -100,7 +100,7 @@ func ipAddrFromRemoteAddr(s string) string {
 
 // requestGetRemoteAddress returns ip address of the client making the request,
 // taking into account http proxies
-func requestGetRemoteAddress(r *http.Request) string {
+func RequestGetRemoteAddress(r *http.Request) string {
 	hdr := r.Header
 	hdrRealIP := hdr.Get("X-Real-Ip")
 	hdrForwardedFor := hdr.Get("X-Forwarded-For")

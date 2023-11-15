@@ -65,9 +65,11 @@ type PGDAL interface {
 
 type DAL interface {
 	NewSession(ctx context.Context) (DBSession, error)
-	StoreSession(dbs DBSession, key string, uid int64, durationSeconds int64) error
+	StoreSession(dbs DBSession, secret string, uid int64, durationSeconds int64, scope string, client string, ipAddr string) error
 	DeleteSession(dbs DBSession, secret string) error
-	GetUIDFromSession(dbs DBSession, key string) (int64, bool, error)
+	GetSessions(dbs DBSession, uid int64) ([]*types.SessionInfo, error)
+	GetSessionAuthInfo(dbs DBSession, secret string) (*types.SessionInfo, bool, error)
+	RevokeSession(dbs DBSession, uid int64, sessionID int64) error
 
 	StoreDiscordUser(dbs DBSession, discordUser *types.DiscordUser) error
 	GetDiscordUser(dbs DBSession, uid int64) (*types.DiscordUser, error)

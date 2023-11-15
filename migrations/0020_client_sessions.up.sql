@@ -1,0 +1,12 @@
+ALTER TABLE session
+ADD COLUMN scope TEXT NULL,
+ADD COLUMN client TEXT NULL,
+ADD COLUMN ip_addr TEXT NULL,
+ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+UPDATE session SET scope = 'all', client = 'FPFSS', ip_addr = 'unknown' WHERE scope IS NULL AND client IS NULL;
+
+ALTER TABLE session
+MODIFY scope TEXT NOT NULL,
+MODIFY client TEXT NOT NULL,
+MODIFY ip_addr TEXT NOT NULL;

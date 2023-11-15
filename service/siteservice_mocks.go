@@ -49,8 +49,8 @@ func (m *mockDAL) NewSession(_ context.Context) (database.DBSession, error) {
 	return args.Get(0).(*mockDBSession), args.Error(1)
 }
 
-func (m *mockDAL) StoreSession(_ database.DBSession, key string, uid int64, durationSeconds int64) error {
-	args := m.Called(key, uid, durationSeconds)
+func (m *mockDAL) StoreSession(_ database.DBSession, key string, uid int64, durationSeconds int64, scope string, client string, ipAddr string) error {
+	args := m.Called(key, uid, durationSeconds, scope, client, ipAddr)
 	return args.Error(0)
 }
 
@@ -59,9 +59,9 @@ func (m *mockDAL) DeleteSession(_ database.DBSession, secret string) error {
 	return args.Error(0)
 }
 
-func (m *mockDAL) GetUIDFromSession(_ database.DBSession, key string) (int64, bool, error) {
+func (m *mockDAL) GetSessionAuthInfo(_ database.DBSession, key string) (*types.SessionInfo, bool, error) {
 	args := m.Called(key)
-	return args.Get(0).(int64), args.Bool(1), args.Error(2)
+	return args.Get(0).(*types.SessionInfo), args.Bool(1), args.Error(2)
 }
 
 func (m *mockDAL) StoreDiscordUser(_ database.DBSession, discordUser *types.DiscordUser) error {

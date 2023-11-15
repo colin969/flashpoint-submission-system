@@ -78,6 +78,7 @@ const (
 	ResourceKeyGameDataDate          = "game-data-date"
 	ResourceKeyReason                = "reason"
 	ResourceKeyHash                  = "hash"
+	ResourceKeySessionID             = "session-id"
 )
 
 const (

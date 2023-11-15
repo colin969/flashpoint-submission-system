@@ -18,6 +18,35 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+func ScopeIsValid(routeScope string, tokenScope string) bool {
+	valid := routeScope == types.AuthScopeNone
+	if !valid {
+		if tokenScope == types.AuthScopeAll {
+			valid = true
+		} else {
+			for _, s := range strings.Split(tokenScope, " ") {
+				if s == routeScope {
+					valid = true
+					break
+				}
+			}
+		}
+	}
+	return valid
+}
+
+func (a *App) RequestScope(next func(http.ResponseWriter, *http.Request), scope string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		valid := ScopeIsValid(scope, utils.Scope(r.Context()))
+		if !valid {
+			writeError(r.Context(), w, perr("You are missing required scope '"+scope+"'", http.StatusForbidden))
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func (a *App) RequestWeb(next func(http.ResponseWriter, *http.Request), slimService bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !a.Conf.FlashpointSourceOnlyMode || slimService {
@@ -122,7 +151,7 @@ func (a *App) UserAuthMux(next func(http.ResponseWriter, *http.Request), authori
 			}
 		}
 
-		uid, ok, err := a.Service.GetUIDFromSession(ctx, secret)
+		authInfo, ok, err := a.Service.GetSessionAuthInfo(ctx, secret)
 		if err != nil {
 			handleAuthErr()
 			return
@@ -133,7 +162,8 @@ func (a *App) UserAuthMux(next func(http.ResponseWriter, *http.Request), authori
 		}
 
 		if len(authorizers) == 0 {
-			r = r.WithContext(context.WithValue(ctx, utils.CtxKeys.UserID, uid))
+			r = r.WithContext(context.WithValue(ctx, utils.CtxKeys.UserID, authInfo.UID))
+			r = r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.Scope, authInfo.Scope))
 			next(w, r)
 			return
 		}
@@ -141,7 +171,7 @@ func (a *App) UserAuthMux(next func(http.ResponseWriter, *http.Request), authori
 		allOk := true
 
 		for _, authorizer := range authorizers {
-			ok, err := authorizer(r, uid)
+			ok, err := authorizer(r, authInfo.UID)
 			if err != nil {
 				utils.LogCtx(ctx).Error(err)
 				writeError(ctx, w, perr("failed to verify authority", http.StatusInternalServerError))
@@ -154,7 +184,8 @@ func (a *App) UserAuthMux(next func(http.ResponseWriter, *http.Request), authori
 		}
 
 		if allOk {
-			r = r.WithContext(context.WithValue(ctx, utils.CtxKeys.UserID, uid))
+			r = r.WithContext(context.WithValue(ctx, utils.CtxKeys.UserID, authInfo.UID))
+			r = r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.Scope, authInfo.Scope))
 			next(w, r)
 			return
 		}

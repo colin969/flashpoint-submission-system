@@ -88,9 +88,9 @@ func (dbs *MysqlSession) Ctx() context.Context {
 }
 
 // StoreSession store session into the DAL with set expiration date
-func (d *mysqlDAL) StoreSession(dbs DBSession, key string, uid int64, durationSeconds int64) error {
+func (d *mysqlDAL) StoreSession(dbs DBSession, key string, uid int64, durationSeconds int64, scope string, client string, ipAddr string) error {
 	expiration := time.Now().Add(time.Second * time.Duration(durationSeconds)).Unix()
-	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO session (secret, uid, expires_at) VALUES (?, ?, ?)`, key, uid, expiration)
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO session (secret, uid, expires_at, scope, client, ip_addr) VALUES (?, ?, ?, ?, ?, ?)`, key, uid, expiration, scope, client, ipAddr)
 	return err
 }
 
@@ -100,22 +100,72 @@ func (d *mysqlDAL) DeleteSession(dbs DBSession, secret string) error {
 	return err
 }
 
-// GetUIDFromSession returns user ID and/or expiration state
-func (d *mysqlDAL) GetUIDFromSession(dbs DBSession, key string) (int64, bool, error) {
-	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT uid, expires_at FROM session WHERE secret=?`, key)
+func (d *mysqlDAL) GetSessions(dbs DBSession, uid int64) ([]*types.SessionInfo, error) {
+	rows, err := dbs.Tx().QueryContext(dbs.Ctx(), `SELECT id, uid, scope, client, expires_at, ip_addr FROM session WHERE uid=?`, uid)
 
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]*types.SessionInfo, 0)
+
+	for rows.Next() {
+		var id int64
+		var uid int64
+		var expiration int64
+		var scope string
+		var ipAddr string
+		var client string
+		err := rows.Scan(&id, &uid, &scope, &client, &expiration, &ipAddr)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &types.SessionInfo{
+			ID:        id,
+			UID:       uid,
+			Scope:     scope,
+			Client:    client,
+			IpAddr:    ipAddr,
+			ExpiresAt: expiration,
+		})
+	}
+
+	return result, nil
+}
+
+// GetSessionAuthInfo returns user ID + scope and/or expiration state
+func (d *mysqlDAL) GetSessionAuthInfo(dbs DBSession, secret string) (*types.SessionInfo, bool, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT id, uid, scope, client, expires_at, ip_addr FROM session WHERE secret=?`, secret)
+
+	var id int64
 	var uid int64
 	var expiration int64
-	err := row.Scan(&uid, &expiration)
+	var scope string
+	var ipAddr string
+	var client string
+	err := row.Scan(&id, &uid, &scope, &client, &expiration, &ipAddr)
 	if err != nil {
-		return 0, false, err
+		return nil, false, err
 	}
 
 	if expiration <= time.Now().Unix() {
-		return 0, false, nil
+		return nil, false, nil
 	}
 
-	return uid, true, nil
+	return &types.SessionInfo{
+		ID:        id,
+		UID:       uid,
+		Scope:     scope,
+		Client:    client,
+		IpAddr:    ipAddr,
+		ExpiresAt: expiration,
+	}, true, nil
+}
+
+func (d *mysqlDAL) RevokeSession(dbs DBSession, uid int64, sessionID int64) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `DELETE FROM session WHERE uid=? AND id=?`, uid, sessionID)
+	return err
 }
 
 // StoreDiscordUser store discord user or replace with new data

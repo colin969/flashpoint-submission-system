@@ -654,7 +654,7 @@ function processOneUserStatistics(users, index) {
 }
 
 function doDeviceFlowAction(userCode, action) {
-    fetch("/auth/device?code=" + userCode + "&action=" + action, { method: 'POST' }).then((res) => {
+    fetch("/auth/device?user_code=" + userCode + "&action=" + action, { method: 'POST' }).then((res) => {
         location.reload()
     }).catch((err) => {
         alert(err)
