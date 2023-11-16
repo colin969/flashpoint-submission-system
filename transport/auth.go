@@ -46,14 +46,14 @@ var clientApps = []types.ClientApplication{
 	{
 		ClientId: "flashpoint-launcher",
 		Name:     "Flashpoint Launcher",
-		Scopes:   []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameDataEdit},
+		Scopes:   []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameEdit},
 	},
 }
 
 var authScopes = []types.AuthScope{
 	{
 		Name:        types.AuthScopeIdentity,
-		Description: "Read your username, avatar, Flashpoint discord server roles and FPFSS notification settings",
+		Description: "Read your username, avatar, Flashpoint discord server roles, and FPFSS notification settings",
 	},
 	{
 		Name:        types.AuthScopeSubmissionRead,
