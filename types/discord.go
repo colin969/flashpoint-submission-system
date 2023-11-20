@@ -12,7 +12,19 @@ type DiscordUser struct {
 }
 
 type DiscordRole struct {
-	ID    int64
-	Name  string
-	Color string
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type FlashpointDiscordRole struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type FlashpointDiscordUser struct {
+	ID    string                   `json:"id"`
+	Roles []*FlashpointDiscordRole `json:"roles"`
+	Color string                   `json:"color"`
 }

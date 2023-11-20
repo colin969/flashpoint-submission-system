@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/gorilla/securecookie"
 	"net/http"
+
+	"github.com/gorilla/securecookie"
 )
 
 // CookieCutter is the cookie handler

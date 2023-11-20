@@ -64,6 +64,47 @@ func (b *bot) GetFlashpointRoles() ([]types.DiscordRole, error) {
 	return result, nil
 }
 
+func (b *bot) GetFlashpointUserInfo(uid int64, roles []types.DiscordRole) (*types.FlashpointDiscordUser, error) {
+	b.l.WithField("uid", uid).Info("getting flashpoint user info")
+	member, err := b.session.GuildMember(b.flashpointServerID, fmt.Sprint(uid))
+	if err != nil {
+		return nil, err
+	}
+
+	color := "#000000"
+	formattedRoles := make([]*types.FlashpointDiscordRole, 0)
+	for _, role := range member.Roles {
+		roleId, err := strconv.ParseInt(role, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range roles {
+			if r.ID == roleId {
+				if r.Color != "#000000" && color == "#000000" {
+					color = r.Color
+				}
+				formattedRoles = append(formattedRoles, &types.FlashpointDiscordRole{
+					ID:    fmt.Sprintf("%d", r.ID),
+					Name:  r.Name,
+					Color: r.Color,
+				})
+				break
+			}
+		}
+	}
+
+	user := &types.FlashpointDiscordUser{
+		ID:    fmt.Sprintf("%d", uid),
+		Roles: formattedRoles,
+		Color: color,
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func formatDiscordgoRoles(roles []*discordgo.Role) ([]types.DiscordRole, error) {
 	formattedRoles := make([]types.DiscordRole, 0, len(roles))
 	for _, role := range roles {

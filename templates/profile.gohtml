@@ -96,27 +96,106 @@
             Fetching Sessions...
         </div>
 
+        <div class="horizontal-rule"></div>
+
+        <h3>Applications</h3>
+
+        <div class="client-apps">
+            Fetching Apps...
+        </div>
+
         <script>
+            async function generateAppSecret(clientId) {
+                // Ask for user confirmation
+                const isConfirmed = confirm("This will invalidate the old secret and you will have to update your application with the new secret. Are you sure you want to generate a new client secret?");
+                if (!isConfirmed) {
+                    return;
+                }
+
+                const res = await fetch("/api/profile/app/" + clientId + "/generate-secret", {
+                    method: "POST"
+                })
+                if (res.status === 200) {
+                    // Show secret in box
+                    const data = await res.json()
+                    const secret = data.secret
+                    const secretCell = document.getElementById("client-secret")
+                    secretCell.innerText = secret
+                } else {
+                    alert("Failed to generate secret.")
+                }
+            }
+
+            async function fetchClientApps() {
+                const res = await fetch("/api/profile/apps");
+                const data = await res.json();
+                const apps = data.apps;
+                const appsDiv = document.querySelector(".client-apps");
+                if (apps.length === 0) {
+                    appsDiv.innerHTML = "You own no applications.";
+                } else {
+                    appsDiv.innerHTML = "";
+                    for (const app of apps) {
+                        const appDiv = document.createElement("div");
+                        appDiv.classList.add("client-app");
+                        appDiv.innerHTML = `
+                            <table>
+                                <tr>
+                                    <td class="client-app-field-name">Name</th>
+                                    <td>${app.name}</td>
+                                </tr>
+                                <tr>
+                                    <td class="client-app-field-name">Client ID</th>
+                                    <td>${app.client_id}</td>
+                                </tr>
+                                <tr>
+                                    <td class="client-app-field-name">Client Secret</th>
+                                    <td id="client-secret" >hidden</td>
+                                </tr>
+                                <tr>
+                                    <td class="client-app-field-name">Scopes</th>
+                                    <td>${app.scopes ? app.scopes.join(" ") : "None"}</td>
+                                </tr>
+                                <tr>
+                                    <td class="client-app-field-name">Client Credential Scopes</th>
+                                    <td>${app.client_creds_scopes ? app.client_creds_scopes.join(" ") : "None"}</td>
+                                </tr>
+                                <tr>
+                                    <td class="client-app-field-name">Redirect URIs</th>
+                                    <td>${app.redirect_uris ? app.redirect_uris.join(" ") : "None"}</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <button type="button" class="pure-button button-approve" onclick="generateAppSecret('${app.client_id}')">Regenerate Client Secret</button>
+                                    </td>
+                                </tr>
+                            </table>
+                        `;
+                        appsDiv.appendChild(appDiv);
+                    }
+                }
+            }
+
             async function deleteSession(sessionId) {
                 const res = await fetch("/api/profile/session/" + sessionId, {
                     method: "DELETE"
-                })
+                });
                 if (res.status === 200) {
-                    fetchSessions()
+                    fetchSessions();
                 } else {
-                    alert("Failed to delete session.")
+                    alert("Failed to delete session.");
                 }
             }
 
             async function fetchSessions() {
-                const res = await fetch("/api/profile/sessions")
-                const data = await res.json()
-                const sessions = data.sessions
-                const sessionsDiv = document.querySelector(".sessions")
-                sessionsDiv.innerHTML = ""
+                const res = await fetch("/api/profile/sessions");
+                const data = await res.json();
+                const sessions = data.sessions;
+                const sessionsDiv = document.querySelector(".sessions");
+                sessionsDiv.innerHTML = "";
                 for (const session of sessions) {
                     const sessionDiv = document.createElement("div")
-                    sessionDiv.classList.add("session")
+                    sessionDiv.classList.add("session");
                     sessionDiv.innerHTML = `
                         <table>
                             <tr>
@@ -141,12 +220,13 @@
                                 </td>
                             </tr>
                         </table>
-                    `
-                    sessionsDiv.appendChild(sessionDiv)
+                    `;
+                    sessionsDiv.appendChild(sessionDiv);
                 }
             }
             document.addEventListener("DOMContentLoaded", function() {
-                fetchSessions()
+                fetchSessions();
+                fetchClientApps();
             })
         </script>
 

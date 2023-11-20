@@ -252,6 +252,22 @@ func (d *mysqlDAL) GetDiscordUserRoles(dbs DBSession, uid int64) ([]string, erro
 	return result, nil
 }
 
+func (d *mysqlDAL) SetClientSecret(dbs DBSession, clientID string, clientSecret string) error {
+	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO oauth_client (client_id, client_secret) VALUES (?, ?) ON DUPLICATE KEY UPDATE client_secret=?`, clientID, clientSecret, clientSecret)
+	return err
+}
+
+func (d *mysqlDAL) GetClientSecret(dbs DBSession, clientID string) (string, error) {
+	row := dbs.Tx().QueryRowContext(dbs.Ctx(), `SELECT client_secret FROM oauth_client WHERE client_id=?`, clientID)
+
+	var clientSecret string
+	err := row.Scan(&clientSecret)
+	if err != nil {
+		return "", err
+	}
+	return clientSecret, nil
+}
+
 // StoreSubmission stores plain submission
 func (d *mysqlDAL) StoreSubmission(dbs DBSession, submissionLevel string) (int64, error) {
 	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `INSERT INTO submission (fk_submission_level_id) 

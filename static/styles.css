@@ -753,12 +753,14 @@ video {
     font-size: 1.1rem;
 }
 
+.client-app,
 .session {
     margin: 0.5rem;
     padding: 0.5rem;
     border: 1px solid;
 }
 
+.client-app-field-name,
 .session-field-name {
     font-weight: bold;
 }

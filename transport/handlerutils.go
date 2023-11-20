@@ -279,3 +279,13 @@ func localeNum(ref *int64) string {
 func isReturnURLValid(s string) bool {
 	return len(s) > 0 && strings.HasPrefix(s, "/") && !strings.HasPrefix(s, "//")
 }
+
+func isReturnURLLocal(s string, host string) bool {
+	if len(s) == 0 {
+		return true
+	}
+	if strings.HasPrefix(s, "/") {
+		return true
+	}
+	return strings.HasPrefix(s, host)
+}

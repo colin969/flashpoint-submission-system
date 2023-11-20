@@ -1,0 +1,37 @@
+{{define "main"}}
+    <div class="content">
+        <script>
+            async function doAuthorize() {
+                const response = await fetch('/auth/authorize' + window.location.search, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const url = await response.text();
+                    window.location.href = url;
+                } else {
+                    alert('Error: ' + response.statusText);
+                }
+            }
+        </script>
+
+        <h1>{{.Token.ClientApplication.Name}} wants to access your account</h1>
+        <div class="device-auth-prompt">They will be able to:</div>
+        <div class="device-auth-scopes">
+            {{range .Scopes}}
+                <div class="device-auth-scope-description">{{.Description}}</div>
+            {{end}}
+        </div>
+        
+        <div>
+            <button class="pure-button pure-button-primary button-approve"
+                onclick="doAuthorize()">Authorize
+            </button>
+            <button class="pure-button pure-button-primary button-cancel"
+                onclick="window.location.href='/'">Deny
+            </button>
+        </div>
+    </div>
+{{end}}

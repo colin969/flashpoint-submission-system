@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	DeviceFlowPending      = 0
@@ -9,12 +11,34 @@ const (
 	DeviceFlowComplete     = 3
 )
 
+const (
+	AuthCodePending  = 0
+	AuthCodeComplete = 1
+)
+
+type AuthCodeToken struct {
+	Code        string
+	UserID      int64
+	RedirectUri string
+	ClientID    string
+	ExpiresAt   time.Time
+	Scope       string
+	IPAddr      string
+	State       int64
+}
+
+type AuthTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int64  `json:"expires_in"`
+}
+
 type DeviceFlowToken struct {
 	DeviceCode              string             `json:"device_code"`
 	Scope                   string             `json:"-"`
 	UserCode                string             `json:"user_code"`
-	VerificationURL         string             `json:"verification_uri"`
-	VerificationURLComplete string             `json:"verification_uri_complete"`
+	VerificationURI         string             `json:"verification_uri"`
+	VerificationURIComplete string             `json:"verification_uri_complete"`
 	ExpiresIn               int64              `json:"expires_in"`
 	Interval                int64              `json:"interval"`
 	ClientApplication       *ClientApplication `json:"-"`
@@ -38,6 +62,7 @@ const (
 	AuthScopeAll                  = "all"
 	AuthScopeIdentity             = "identity"
 	AuthScopeProfileEdit          = "profile:edit"
+	AuthScopeProfileAppsRead      = "profile:apps:read"
 	AuthScopeUsersRead            = "users:read"
 	AuthScopeSubmissionRead       = "submission:read"
 	AuthScopeSubmissionReadFiles  = "submission:read-files"
@@ -55,9 +80,14 @@ const (
 )
 
 type ClientApplication struct {
-	ClientId string   `json:"client_id"`
-	Name     string   `json:"name"`
-	Scopes   []string `json:"scopes"`
+	UserID            int64    `json:"user_id"`
+	UserRoles         []string `json:"user_roles"`
+	ClientId          string   `json:"client_id"`
+	Name              string   `json:"name"`
+	ClientCredsScopes []string `json:"client_creds_scopes"`
+	Scopes            []string `json:"scopes"`
+	RedirectURIs      []string `json:"redirect_uris"`
+	OwnerUID          int64    `json:"owner_uid"`
 }
 
 type SessionInfo struct {

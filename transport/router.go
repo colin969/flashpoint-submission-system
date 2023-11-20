@@ -87,15 +87,35 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(a.HandleLogout, false))).
 		Methods("GET")
 
-	// device flow
+	// authorization code grant
+	router.Handle(
+		"/auth/authorize",
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleOauthAuthorize), false))).
+		Methods("GET", "POST")
+
+	// device authorization grant
 	router.Handle(
 		"/auth/token",
 		http.HandlerFunc(a.RequestJSON(a.HandleOauthToken, false))).
 		Methods("POST")
 	router.Handle(
 		"/auth/device",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleApproveDevice, muxAny(isStaff, isTrialCurator, isInAudit)), false))).
-		Methods("GET", "POST")
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleOauthDevice, types.AuthScopeAll),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		Methods("GET")
+	router.Handle(
+		"/auth/device",
+		http.HandlerFunc(a.RequestJSON(a.HandleOauthDevice, false))).
+		Methods("POST")
+	router.Handle(
+		"/auth/device/respond",
+		http.HandlerFunc(a.RequestWeb(a.HandleOauthDeviceResponse, false))).
+		Methods("POST")
+
+	router.Handle(
+		fmt.Sprintf("/api/server-user/{%s}", constants.ResourceKeyUserID),
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.GetServerUser), false))).
+		Methods("GET")
 
 	// pages
 	if !a.Conf.FlashpointSourceOnlyMode {
@@ -163,6 +183,20 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		fmt.Sprintf("/api/profile/session/{%s}", constants.ResourceKeySessionID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
 		Methods("DELETE")
+
+	f = a.UserAuthMux(a.RequestScope(a.HandleOwnedClientApplications, types.AuthScopeProfileAppsRead))
+
+	router.Handle(
+		"/api/profile/apps",
+		http.HandlerFunc(a.RequestJSON(f, false))).
+		Methods("GET")
+
+	f = a.UserAuthMux(a.RequestScope(a.HandleOwnedClientApplication, types.AuthScopeAll))
+
+	router.Handle(
+		fmt.Sprintf("/api/profile/app/{%s}/generate-secret", constants.ResourceKeyClientAppID),
+		http.HandlerFunc(a.RequestJSON(f, false))).
+		Methods("POST")
 
 	////////////////////////
 

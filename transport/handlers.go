@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/kofalt/go-memoize"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/clients"
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/FlashpointProject/flashpoint-submission-system/utils"
@@ -313,7 +315,6 @@ func (a *App) HandleSessionsPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeResponse(ctx, w, map[string]interface{}{"sessions": sessions}, http.StatusOK)
-	return
 }
 
 func (a *App) HandleSessionPage(w http.ResponseWriter, r *http.Request) {
@@ -340,6 +341,64 @@ func (a *App) HandleSessionPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (a *App) HandleOwnedClientApplications(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+
+	ownedApps := make([]types.ClientApplication, 0)
+	for _, clientApp := range clients.ClientApps {
+		if clientApp.OwnerUID != 0 && clientApp.OwnerUID == uid {
+			ownedApps = append(ownedApps, clientApp)
+		}
+	}
+
+	writeResponse(ctx, w, map[string]interface{}{"apps": ownedApps}, http.StatusOK)
+}
+
+func (a *App) HandleOwnedClientApplication(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := utils.UserID(ctx)
+	params := mux.Vars(r)
+	clientID := params[constants.ResourceKeyClientAppID]
+
+	// Make sure client exists and user owns it
+	if clientID == "" {
+		writeError(ctx, w, perr("invalid client id format", http.StatusBadRequest))
+		return
+	}
+	var client *types.ClientApplication
+	for _, clientApp := range clients.ClientApps {
+		if clientApp.OwnerUID == uid && clientApp.ClientId == clientID {
+			client = &clientApp
+			break
+		}
+	}
+	if client == nil {
+		writeError(ctx, w, perr("client not found", http.StatusNotFound))
+		return
+	}
+
+	// Regenerate client secret
+	newSecret := make([]byte, 64)
+	for i := range newSecret {
+		newSecret[i] = deviceCodeCharset[rand.Intn(len(deviceCodeCharset))]
+	}
+	// Hash secret before storing
+	hashClientSecret, err := hashClientSecret(string(newSecret))
+	if err != nil {
+		writeError(ctx, w, perr("failed to hash secret", http.StatusInternalServerError))
+		return
+	}
+
+	err = a.Service.SetClientAppSecret(ctx, clientID, string(hashClientSecret))
+	if err != nil {
+		writeError(ctx, w, perr("failed to save secret", http.StatusInternalServerError))
+		return
+	}
+
+	writeResponse(ctx, w, map[string]interface{}{"secret": string(newSecret)}, http.StatusOK)
 }
 
 func (a *App) HandleProfilePage(w http.ResponseWriter, r *http.Request) {

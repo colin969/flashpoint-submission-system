@@ -79,6 +79,7 @@ const (
 	ResourceKeyReason                = "reason"
 	ResourceKeyHash                  = "hash"
 	ResourceKeySessionID             = "session-id"
+	ResourceKeyClientAppID           = "client-app-id"
 )
 
 const (

@@ -30,6 +30,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	cache2 "github.com/patrickmn/go-cache"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/clients"
 	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
 	"github.com/go-sql-driver/mysql"
 	"github.com/kofalt/go-memoize"
@@ -195,7 +196,8 @@ func (s *SiteService) GetBasePageData(ctx context.Context) (*types.BasePageData,
 	defer dbs.Rollback()
 
 	uid := utils.UserID(ctx)
-	if uid == 0 {
+	if uid < 100000 {
+		// Logged out = 0, client application < 100000
 		return &types.BasePageData{}, nil
 	}
 
@@ -1114,7 +1116,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	return nil
 }
 
-func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, ipAddr string) (*authToken, error) {
+func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*authToken, error) {
 	getServerRoles := func() (interface{}, error) {
 		return s.authBot.GetFlashpointRoles()
 	}
@@ -1208,7 +1210,7 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 		return nil, err
 	}
 
-	if err = s.dal.StoreSession(dbs, authToken.Secret, discordUser.ID, s.sessionExpirationSeconds, "all", "FPFSS", ipAddr); err != nil {
+	if err = s.dal.StoreSession(dbs, authToken.Secret, discordUser.ID, s.sessionExpirationSeconds, scope, clientID, ipAddr); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
 	}
@@ -1219,6 +1221,26 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 	}
 
 	return authToken, nil
+}
+
+func (s *SiteService) GetClientSecret(ctx context.Context, clientID string) (string, error) {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return "", dberr(err)
+	}
+	defer dbs.Rollback()
+
+	clientSecret, err := s.dal.GetClientSecret(dbs, clientID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		utils.LogCtx(ctx).Error(err)
+		return "", dberr(err)
+	}
+
+	return clientSecret, nil
 }
 
 func (s *SiteService) GenAuthToken(ctx context.Context, uid int64, scope string, client string, ipAddr string) (map[string]string, error) {
@@ -1269,6 +1291,31 @@ func (s *SiteService) Logout(ctx context.Context, secret string) error {
 	return nil
 }
 
+func (s *SiteService) GetServerUser(ctx context.Context, uid int64) (*types.FlashpointDiscordUser, error) {
+	getServerRoles := func() (interface{}, error) {
+		return s.authBot.GetFlashpointRoles()
+	}
+	const getServerRolesKey = "getServerRoles"
+
+	// get discord server roles
+	sr, err, cached := s.discordRoleCache.Memoize(getServerRolesKey, getServerRoles)
+	utils.LogCtx(ctx).WithField("cached", utils.BoolToString(cached)).Debug("reading server roles from discord")
+
+	if err != nil {
+		s.discordRoleCache.Storage.Delete(getServerRolesKey)
+		utils.LogCtx(ctx).Error(err)
+		return nil, err
+	}
+	roles := sr.([]types.DiscordRole)
+	userInfo, err := s.authBot.GetFlashpointUserInfo(uid, roles)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, err
+	}
+
+	return userInfo, nil
+}
+
 func (s *SiteService) GetUserRoles(ctx context.Context, uid int64) ([]string, error) {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
@@ -1276,6 +1323,15 @@ func (s *SiteService) GetUserRoles(ctx context.Context, uid int64) ([]string, er
 		return nil, dberr(err)
 	}
 	defer dbs.Rollback()
+
+	if uid < 100000 {
+		// this is a client app, check its own list
+		for _, client := range clients.ClientApps {
+			if client.UserID == uid {
+				return client.UserRoles, nil
+			}
+		}
+	}
 
 	roles, err := s.dal.GetDiscordUserRoles(dbs, uid)
 	if err != nil {
@@ -3368,6 +3424,28 @@ func (s *SiteService) NukeSessionTable(ctx context.Context) error {
 	defer dbs.Rollback()
 
 	err = s.dal.NukeSessionTable(dbs)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
+
+func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, clientSecret string) error {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer dbs.Rollback()
+
+	err = s.dal.SetClientSecret(dbs, clientID, clientSecret)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

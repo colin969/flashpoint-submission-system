@@ -1,8 +1,7 @@
 {{define "main"}}
     <div class="content">
         {{if eq .Token.FlowState .States.Pending}}
-            <h1>Approve Device?</h1>
-            <div class="device-auth-prompt"><div class="device-auth-client">{{.Token.ClientApplication.Name}}</div> will be able to:</div>
+            <h1>{{.Token.ClientApplication.Name}} wants to access your account</h1>
             <div class="device-auth-scopes">
                 {{range .Scopes}}
                     <div class="device-auth-scope-description">{{.Description}}</div>

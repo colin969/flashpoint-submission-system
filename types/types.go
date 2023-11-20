@@ -467,7 +467,7 @@ type Game struct {
 
 type GameData struct {
 	ID              int       `json:"id,omitempty"`
-	GameID          string    `json:"game_id,gameId"`
+	GameID          string    `json:"game_id"`
 	Title           string    `json:"title"`
 	DateAdded       time.Time `json:"date_added,omitempty"`
 	SHA256          string    `json:"sha_256"`

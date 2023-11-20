@@ -36,6 +36,7 @@ type App struct {
 	decoder             *schema.Decoder
 	authMiddlewareCache *memoize.Memoizer
 	DFStorage           *DeviceFlowStorage
+	AuthCodeStorage     *AuthCodeStorage
 	AdminModePassword   string
 }
 
@@ -74,7 +75,8 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 			Previous: securecookie.New([]byte(conf.SecurecookieHashKeyPrevious), []byte(conf.SecurecookieBlockKeyPrevious)),
 			Current:  securecookie.New([]byte(conf.SecurecookieHashKeyCurrent), []byte(conf.SecurecookieBlockKeyPrevious)),
 		},
-		DFStorage: NewDeviceFlowStorage(conf.DeviceFlowVerificaitonUrl),
+		AuthCodeStorage: NewAuthCodeStorage(),
+		DFStorage:       NewDeviceFlowStorage(conf.HostBaseURL),
 		Service: service.New(l, db, pgdb, authBotSession, notificationBotSession, conf.FlashpointServerID,
 			conf.NotificationChannelID, conf.CurationFeedChannelID, conf.ValidatorServerURL, conf.SessionExpirationSeconds,
 			conf.SubmissionsDirFullPath, conf.SubmissionImagesDirFullPath, conf.FlashfreezeDirFullPath, conf.IsDev,

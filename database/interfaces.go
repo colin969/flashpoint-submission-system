@@ -71,6 +71,9 @@ type DAL interface {
 	GetSessionAuthInfo(dbs DBSession, secret string) (*types.SessionInfo, bool, error)
 	RevokeSession(dbs DBSession, uid int64, sessionID int64) error
 
+	SetClientSecret(dbs DBSession, clientID string, clientSecret string) error
+	GetClientSecret(dbs DBSession, clientID string) (string, error)
+
 	StoreDiscordUser(dbs DBSession, discordUser *types.DiscordUser) error
 	GetDiscordUser(dbs DBSession, uid int64) (*types.DiscordUser, error)
 	StoreDiscordServerRoles(dbs DBSession, roles []types.DiscordRole) error
