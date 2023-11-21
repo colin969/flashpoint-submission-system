@@ -300,6 +300,13 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(f, true))).
 		Methods("GET")
 
+	f = a.HandleFetchGames
+
+	router.Handle(
+		"/api/games/fetch",
+		http.HandlerFunc(a.RequestJSON(f, true))).
+		Methods("POST")
+
 	////////////////////////
 
 	f = a.HandlePlatformsPage

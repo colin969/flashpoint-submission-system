@@ -928,3 +928,7 @@ func (as ArchiveState) String() string {
 	}
 	return "Unknown"
 }
+
+type FetchGamesRequest struct {
+	GameIDs []string `json:"game_ids"`
+}

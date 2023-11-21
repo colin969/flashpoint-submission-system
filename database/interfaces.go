@@ -31,6 +31,7 @@ type PGDAL interface {
 	GetTagByName(dbs PGDBSession, tagName string) (*types.Tag, error)
 	GetPlatform(dbs PGDBSession, platformId int64) (*types.Platform, error)
 	GetPlatformByName(dbs PGDBSession, platformName string) (*types.Platform, error)
+	GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game, error)
 	GetGame(dbs PGDBSession, gameId string) (*types.Game, error)
 	GetGameData(dbs PGDBSession, gameId string, date int64) (*types.GameData, error)
 	GetGameDataIndex(dbs PGDBSession, gameId string, date int64) (*types.GameDataIndex, error)

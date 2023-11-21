@@ -423,6 +423,37 @@ func (d *postgresDAL) GetGamesUsingTagTotal(dbs PGDBSession, tagId int64) (int64
 	return count, nil
 }
 
+func (d *postgresDAL) GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game, error) {
+	games := make([]*types.Game, 0)
+	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, parent_game_id, title, alternate_titles, series, developer,
+		publisher, date_added, date_modified, play_mode, status, notes,
+		source, application_path, launch_command, release_Date, version,
+		original_description, language, library, active_data_id, tags_str, platforms_str,
+		action, reason, deleted, user_id, platform_name, archive_state
+		FROM game WHERE id=ANY($1)`, gameIds)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return games, nil
+		}
+		return nil, err
+	}
+
+	for rows.Next() {
+		var game types.Game
+		err = rows.Scan(&game.ID, &game.ParentGameID, &game.Title, &game.AlternateTitles, &game.Series, &game.Developer,
+			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes,
+			&game.Source, &game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version,
+			&game.OriginalDesc, &game.Language, &game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr,
+			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, &game)
+	}
+
+	return games, nil
+}
+
 func (d *postgresDAL) GetGame(dbs PGDBSession, gameId string) (*types.Game, error) {
 	// Get game
 	var game types.Game

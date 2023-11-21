@@ -2998,6 +2998,23 @@ func (s *SiteService) GetMetadataStatsPageData(ctx context.Context) (*types.Meta
 	return &pageData, nil
 }
 
+func (s *SiteService) FetchGames(ctx context.Context, ids []string) ([]*types.Game, error) {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, err
+	}
+	defer dbs.Rollback()
+
+	games, err := s.pgdal.GetGames(dbs, ids)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, err
+	}
+
+	return games, nil
+}
+
 func (s *SiteService) GetDeletedGamePageData(ctx context.Context, modifiedAfter *string) ([]*types.DeletedGame, error) {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {

@@ -462,6 +462,30 @@ func (a *App) HandleMetadataStats(w http.ResponseWriter, r *http.Request) {
 		"templates/metadata-stats.gohtml")
 }
 
+func (a *App) HandleFetchGames(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	defer r.Body.Close()
+	var requestBody types.FetchGamesRequest
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		writeError(ctx, w, perr("failed to decode request body", http.StatusBadRequest))
+		return
+	}
+
+	if requestBody.GameIDs == nil || len(requestBody.GameIDs) == 0 {
+		writeError(ctx, w, perr("no game ids provided", http.StatusBadRequest))
+		return
+	}
+
+	games, err := a.Service.FetchGames(ctx, requestBody.GameIDs)
+	if err != nil {
+		writeError(ctx, w, perr("failed to fetch games", http.StatusInternalServerError))
+		return
+	}
+
+	writeResponse(ctx, w, map[string]interface{}{"games": games}, http.StatusOK)
+}
+
 func (a *App) HandleDeletedGames(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

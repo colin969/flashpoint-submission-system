@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -590,7 +589,6 @@ func (a *App) HandleOauthDevice(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		writeResponse(ctx, w, token, http.StatusOK)
 		return
 	}
@@ -797,10 +795,8 @@ func (a *App) HandleOauthToken(w http.ResponseWriter, r *http.Request) {
 				// Filter out invalid scopes
 				var validScopes []string
 				for _, scopeStr := range strings.Split(scope, " ") {
-					fmt.Println("checking: ", scopeStr)
 					for _, allowedClientScope := range client.ClientCredsScopes {
 						if scopeStr == allowedClientScope {
-							fmt.Println("validated: ", scopeStr)
 							validScopes = append(validScopes, scopeStr)
 						}
 					}
