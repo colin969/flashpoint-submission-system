@@ -119,7 +119,7 @@
                     // Show secret in box
                     const data = await res.json()
                     const secret = data.secret
-                    const secretCell = document.getElementById("client-secret")
+                    const secretCell = document.getElementById(`client-secret-${clientId}`)
                     secretCell.innerText = secret
                 } else {
                     alert("Failed to generate secret.")
@@ -150,7 +150,7 @@
                                 </tr>
                                 <tr>
                                     <td class="client-app-field-name">Client Secret</th>
-                                    <td id="client-secret" >hidden</td>
+                                    <td id="client-secret-${app.client_id}" >hidden</td>
                                 </tr>
                                 <tr>
                                     <td class="client-app-field-name">Scopes</th>

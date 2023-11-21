@@ -6,13 +6,12 @@ var BotUserMinID = int64(1000)
 
 var ClientApps = []types.ClientApplication{
 	{
-		UserID:            BotUserMinID + 2,
-		UserRoles:         []string{},
-		ClientId:          "flashpoint-launcher",
-		Name:              "Flashpoint Launcher",
-		Scopes:            []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameEdit},
-		ClientCredsScopes: []string{},
-		OwnerUID:          int64(689080719460663414), // Colin
+		UserID:    BotUserMinID + 2,
+		UserRoles: []string{},
+		ClientId:  "flashpoint-launcher",
+		Name:      "Flashpoint Launcher",
+		Scopes:    []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameEdit},
+		OwnerUID:  int64(689080719460663414), // Colin
 	},
 	{
 		UserID:            BotUserMinID + 3,

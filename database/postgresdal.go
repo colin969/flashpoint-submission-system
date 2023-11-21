@@ -1844,7 +1844,11 @@ func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, rea
 		if err != nil {
 			return err
 		}
-		err = os.Rename(logoPath, newLogoPath)
+		err = utils.CopyFile(logoPath, newLogoPath)
+		if err != nil {
+			return err
+		}
+		err = os.Remove(logoPath)
 		if err != nil {
 			return err
 		}
@@ -1856,7 +1860,11 @@ func (d *postgresDAL) RestoreGame(dbs PGDBSession, gameId string, uid int64, rea
 		if err != nil {
 			return err
 		}
-		err = os.Rename(ssPath, newSSPath)
+		err = utils.CopyFile(ssPath, newSSPath)
+		if err != nil {
+			return err
+		}
+		err = os.Remove(ssPath)
 		if err != nil {
 			return err
 		}
