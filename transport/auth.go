@@ -985,16 +985,16 @@ func NewDeviceFlowStorage(baseUrl string) *DeviceFlowStorage {
 }
 
 func (s *DeviceFlowStorage) GetUserAuthToken(deviceCode string, clientID string) *types.DeviceFlowToken {
-	var dfToken *types.DeviceFlowToken
+	var dfToken types.DeviceFlowToken
 	for i, token := range s.tokens {
 		if token.DeviceCode == deviceCode && token.ClientApplication.ClientId == clientID {
-			dfToken = token
+			dfToken = *token
 			// Remove from server now it has been claimed
 			s.tokens[i].AuthToken = nil
 		}
 	}
 
-	return dfToken
+	return &dfToken
 }
 
 func (s *DeviceFlowStorage) SaveUserAuthToken(uid int64, token string, deviceCode string) {
