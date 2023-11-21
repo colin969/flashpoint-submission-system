@@ -10,7 +10,7 @@ var ClientApps = []types.ClientApplication{
 		UserRoles: []string{},
 		ClientId:  "flashpoint-launcher",
 		Name:      "Flashpoint Launcher",
-		Scopes:    []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameEdit},
+		Scopes:    []string{types.AuthScopeIdentity, types.AuthScopeGameRead, types.AuthScopeGameEdit, types.AuthScopeSubmissionReadFiles, types.AuthScopeSubmissionRead},
 		OwnerUID:  int64(689080719460663414), // Colin
 	},
 	{
