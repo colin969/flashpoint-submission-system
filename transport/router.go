@@ -109,7 +109,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 	router.Handle(
 		"/auth/device/respond",
-		http.HandlerFunc(a.RequestWeb(a.HandleOauthDeviceResponse, false))).
+		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.HandleOauthDeviceResponse), false))).
 		Methods("POST")
 
 	router.Handle(
