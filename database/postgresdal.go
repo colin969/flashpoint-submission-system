@@ -451,6 +451,28 @@ func (d *postgresDAL) GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game
 		games = append(games, &game)
 	}
 
+	for i, game := range games {
+		// Get tags
+		rows, err = dbs.Tx().Query(dbs.Ctx(), `SELECT tag.id, coalesce(tag.description, 'none') as description, tag_category.name, tag.date_modified, primary_alias, user_id FROM tag LEFT JOIN tag_category ON tag_category.id = tag.category_id WHERE tag.id IN (
+			SELECT tag_id FROM game_tags_tag WHERE game_id = $1) ORDER BY primary_alias`, game.ID)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var data types.Tag
+			err = rows.Scan(&data.ID, &data.Description, &data.Category, &data.DateModified, &data.Name, &data.UserID)
+			if err != nil {
+				return nil, err
+			}
+			game.Tags = append(game.Tags, &data)
+		}
+		games[i].Tags = game.Tags
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	return games, nil
 }
 
