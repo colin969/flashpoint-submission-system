@@ -19,7 +19,7 @@ var ClientApps = []types.ClientApplication{
 		ClientId:          "flashpoint-community",
 		Name:              "Flashpoint Community",
 		Scopes:            []string{types.AuthScopeIdentity},
-		RedirectURIs:      []string{"https://fpcomm-dev.colintest.site/auth/callback"},
+		RedirectURIs:      []string{"https://fpcomm-dev.colintest.site/auth/callback", "https://community.flashpointarchive.org/auth/callback", "https://community-test.flashpointarchive.org/auth/callback"},
 		ClientCredsScopes: []string{types.AuthScopeIdentity, types.AuthScopeGameRead},
 		OwnerUID:          int64(689080719460663414), // Colin
 	},
