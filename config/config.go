@@ -45,6 +45,7 @@ type Config struct {
 	SystemUid                     int64
 	ImagesCdn                     string
 	ImagesCdnCompressed           bool
+	ImagesCdnApiKey               string
 	MinLauncherVersion            string
 	DataPacksDir                  string
 	FrozenPacksDir                string
@@ -134,6 +135,7 @@ func GetConfig(l *logrus.Entry) *Config {
 		SystemUid:                     EnvInt("SYSTEM_UID"),
 		ImagesCdn:                     EnvString("IMAGES_CDN"),
 		ImagesCdnCompressed:           EnvBool("IMAGES_CDN_COMPRESSED"),
+		ImagesCdnApiKey:               EnvString("IMAGES_CDN_API_KEY"),
 		MinLauncherVersion:            EnvString("MIN_LAUNCHER_VERSION"),
 		DataPacksDir:                  EnvString("DATA_PACKS_PATH"),
 		FrozenPacksDir:                EnvString("FROZEN_PACKS_PATH"),

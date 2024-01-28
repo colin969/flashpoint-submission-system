@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -917,10 +920,198 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	gameId := params[constants.ResourceKeyGameID]
+	revisionDate := ""
+
+	game, err := a.Service.GetGamePageData(ctx, gameId, a.Conf.ImagesCdn, a.Conf.ImagesCdnCompressed, revisionDate)
+	if err != nil {
+		http.Error(w, "Game does not exist", http.StatusNotFound)
+		return
+	}
+	if game.Game.Deleted {
+		http.Error(w, "Game is deleted", http.StatusForbidden)
+		return
+	}
+
+	// Parse the multipart form
+	const maxUploadSize = 15 << 20 // 10 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the file from form data
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Read the first 512 bytes to detect content type
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	// Check the file type
+	contentType := http.DetectContentType(buffer)
+	if contentType != "image/png" {
+		http.Error(w, "The uploaded file is not a PNG image", http.StatusBadRequest)
+		return
+	}
+
+	// Reset the file read pointer to the beginning
+	if _, err := file.Seek(0, 0); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	logoPath := fmt.Sprintf("%s/Logos/%s/%s/%s.png", a.Conf.ImagesDir, gameId[:2], gameId[2:4], gameId)
+	if err := os.MkdirAll(filepath.Dir(logoPath), os.ModePerm); err != nil {
+		http.Error(w, "Failed to create directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new file
+	dst, err := os.Create(logoPath)
+	if err != nil {
+		http.Error(w, "Failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// Reset the file read pointer to the beginning of the uploaded file
+	if _, err := file.Seek(0, 0); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy the contents of the uploaded file to the new file
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	url := fmt.Sprintf("%s/Logos/%s/%s/%s.png",
+		a.Conf.ImagesCdn, gameId[:2], gameId[2:4], gameId)
+	// Clear the image microservice cached file
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		http.Error(w, "Updated file, but failed to clear image cache", http.StatusInternalServerError)
+	}
+	req.Header.Set("Authorization", "Bearer "+a.Conf.ImagesCdnApiKey)
+	_, err = client.Do(req)
+	if err != nil {
+		http.Error(w, "Updated file, but failed to clear image cache", http.StatusInternalServerError)
+	}
+
+	// File saved successfully
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("File uploaded and saved successfully"))
 
 }
 
 func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	gameId := params[constants.ResourceKeyGameID]
+	revisionDate := ""
+
+	game, err := a.Service.GetGamePageData(ctx, gameId, a.Conf.ImagesCdn, a.Conf.ImagesCdnCompressed, revisionDate)
+	if err != nil {
+		http.Error(w, "Game does not exist", http.StatusNotFound)
+		return
+	}
+	if game.Game.Deleted {
+		http.Error(w, "Game is deleted", http.StatusForbidden)
+		return
+	}
+
+	// Parse the multipart form
+	const maxUploadSize = 15 << 20 // 10 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the file from form data
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Read the first 512 bytes to detect content type
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	// Check the file type
+	contentType := http.DetectContentType(buffer)
+	if contentType != "image/png" {
+		http.Error(w, "The uploaded file is not a PNG image", http.StatusBadRequest)
+		return
+	}
+
+	// Reset the file read pointer to the beginning
+	if _, err := file.Seek(0, 0); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	screenshotPath := fmt.Sprintf("%s/Screenshots/%s/%s/%s.png", a.Conf.ImagesDir, gameId[:2], gameId[2:4], gameId)
+	if err := os.MkdirAll(filepath.Dir(screenshotPath), os.ModePerm); err != nil {
+		http.Error(w, "Failed to create directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new file
+	dst, err := os.Create(screenshotPath)
+	if err != nil {
+		http.Error(w, "Failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// Reset the file read pointer to the beginning of the uploaded file
+	if _, err := file.Seek(0, 0); err != nil {
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy the contents of the uploaded file to the new file
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	url := fmt.Sprintf("%s/Screenshots/%s/%s/%s.png",
+		a.Conf.ImagesCdn, gameId[:2], gameId[2:4], gameId)
+	// Clear the image microservice cached file
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		http.Error(w, "Updated file, but failed to clear image cache", http.StatusInternalServerError)
+	}
+	req.Header.Set("Authorization", "Bearer "+a.Conf.ImagesCdnApiKey)
+	_, err = client.Do(req)
+	if err != nil {
+		http.Error(w, "Updated file, but failed to clear image cache", http.StatusInternalServerError)
+	}
+
+	// File saved successfully
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("File uploaded and saved successfully"))
 
 }
 

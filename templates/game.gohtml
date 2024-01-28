@@ -66,6 +66,73 @@
         {{end}}
         </div>
 
+        {{if isDeleter .UserRoles}}
+            <div class="game-buttons">
+                <form id="logoUploadForm" action="/api/game/{{.Game.ID}}/logo" method="post" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" name="image" id="logoUpload" accept="image/png" onchange="submitLogoFormIfFileSelected()">
+                </form>
+                <button onclick="document.getElementById('logoUpload').click();" class="pure-button">Upload Logo</button>
+
+                <form id="ssUploadForm" action="/api/game/{{.Game.ID}}/screenshot" method="post" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" name="image" id="ssUpload" accept="image/png" onchange="submitScreenshotFormIfFileSelected()">
+                </form>
+                <button onclick="document.getElementById('ssUpload').click();" class="pure-button">Upload Screenshot</button>
+            </div>
+
+            <script>
+                function submitLogoFormIfFileSelected() {
+                    const fileInput = document.getElementById('logoUpload');
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        fetch('/api/game/{{.Game.ID}}/logo', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(response) {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                        })
+                        .then(function() {
+                            window.location.reload();
+                        })
+                        .catch(function(error) {
+                            // Handle error
+                            console.error('Upload error:', error);
+                            alert('Error uploading file');
+                        });
+                    }
+                }
+                function submitScreenshotFormIfFileSelected() {
+                    const fileInput = document.getElementById('ssUpload');
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        fetch('/api/game/{{.Game.ID}}/screenshot', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(response) {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                        })
+                        .then(function() {
+                            window.location.reload();
+                        })
+                        .catch(function(error) {
+                            // Handle error
+                            console.error('Upload error:', error);
+                            alert('Error uploading file');
+                        });
+                    }
+                }
+            </script>
+        {{end}}
+
         <h1>{{.Game.Title}} </h1>
 
         <div style="font-weight: bold">

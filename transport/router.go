@@ -399,7 +399,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	f = a.UserAuthMux(
 		a.RequestScope(a.HandleGameLogo, types.AuthScopeGameEdit),
-		muxAny(isStaff))
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/logo", constants.ResourceKeyGameID),
@@ -408,7 +408,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	f = a.UserAuthMux(
 		a.RequestScope(a.HandleGameScreenshot, types.AuthScopeGameDataEdit),
-		muxAny(isStaff))
+		muxAny(isDeleter))
 
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}/screenshot", constants.ResourceKeyGameID),
