@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"github.com/FlashpointProject/flashpoint-submission-system/config"
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
@@ -2022,11 +2023,11 @@ func getCategoryID(arr []*types.TagCategory, target string) int64 {
 	return -1
 }
 
-func (d *postgresDAL) CreateEvent(dbs PGDBSession, event *types.ActivityEvent) error {
+func (d *postgresDAL) CreateEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error {
 	_, err := dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO activity_events 
-		(uid, created_at, event_data)
-		VALUES ($1, $2, $3)`,
-		event.UID, event.CreatedAt, event.EventData)
+		(uid, created_at, event_area, event_operation, event_data)
+		VALUES ($1, $2, $3, $4, $5)`,
+		event.UserID, event.CreatedAt, event.Area, event.Operation, event.Data)
 	if err != nil {
 		return err
 	}

@@ -418,21 +418,24 @@ func (d *mysqlDAL) GetCurationMetaBySubmissionFileID(dbs DBSession, sfid int64) 
 }
 
 // StoreComment stores curation meta
-func (d *mysqlDAL) StoreComment(dbs DBSession, c *types.Comment) error {
+func (d *mysqlDAL) StoreComment(dbs DBSession, c *types.Comment) (int64, error) {
 	var msg *string
 	if c.Message != nil {
 		s := strings.TrimSpace(*c.Message)
 		msg = &s
 	}
-	_, err := dbs.Tx().ExecContext(dbs.Ctx(), `
+	res, err := dbs.Tx().ExecContext(dbs.Ctx(), `
 		INSERT INTO comment (fk_user_id, fk_submission_id, message, fk_action_id, created_at) 
         VALUES (?, ?, ?, (SELECT id FROM action WHERE name=?), ?)`,
 		c.AuthorID, c.SubmissionID, msg, c.Action, c.CreatedAt.Unix())
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	return nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func (d *mysqlDAL) PopulateRevisionInfo(dbs DBSession, revisions []*types.RevisionInfo) error {

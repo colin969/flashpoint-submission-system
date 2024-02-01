@@ -503,19 +503,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
-	f = a.UserAuthMux(
-		a.RequestScope(a.HandleSearchFlashfreezePage, types.AuthScopeFlashfreezeReadFiles),
-		muxAny(isStaff, isTrialCurator, isInAudit))
-
-	router.Handle(
-		"/web/flashfreeze/files",
-		http.HandlerFunc(a.RequestWeb(f, false))).
-		Methods("GET")
-
-	router.Handle(
-		"/api/flashfreeze/files",
-		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("GET")
+	//f = a.UserAuthMux(
+	//	a.RequestScope(a.HandleSearchFlashfreezePage, types.AuthScopeFlashfreezeReadFiles),
+	//	muxAny(isStaff, isTrialCurator, isInAudit))
+	//
+	//router.Handle(
+	//	"/web/flashfreeze/files",
+	//	http.HandlerFunc(a.RequestWeb(f, false))).
+	//	Methods("GET")
+	//
+	//router.Handle(
+	//	"/api/flashfreeze/files",
+	//	http.HandlerFunc(a.RequestJSON(f, false))).
+	//	Methods("GET")
 
 	////////////////////////
 

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/jackc/pgx/v5"
 )
@@ -62,6 +63,8 @@ type PGDAL interface {
 
 	UpdateTagsFromTagsList(dbs PGDBSession, tagsList []types.Tag) error
 	ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Game, patch *types.GameContentPatch, addApps []*types.CurationAdditionalApp) error
+
+	CreateEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error
 }
 
 type DAL interface {
@@ -91,7 +94,7 @@ type DAL interface {
 	StoreCurationMeta(dbs DBSession, cm *types.CurationMeta) error
 	GetCurationMetaBySubmissionFileID(dbs DBSession, sfid int64) (*types.CurationMeta, error)
 
-	StoreComment(dbs DBSession, c *types.Comment) error
+	StoreComment(dbs DBSession, c *types.Comment) (int64, error)
 	GetExtendedCommentsBySubmissionID(dbs DBSession, sid int64) ([]*types.ExtendedComment, error)
 	GetCommentByID(dbs DBSession, cid int64) (*types.Comment, error)
 

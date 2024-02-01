@@ -14,6 +14,7 @@ import (
 
 func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	submissionFileID := params[constants.ResourceKeyFileID]
 
@@ -30,6 +31,12 @@ func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	sf := sfs[0]
+
+	err = a.Service.EmitSubmissionDownloadEvent(ctx, uid, sfid)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
 
 	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.SubmissionsDirFullPath, sf.CurrentFilename))
 
