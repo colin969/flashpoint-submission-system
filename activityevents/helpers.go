@@ -259,3 +259,17 @@ func BuildGameSaveEvent(userID int64, gameUUID string) *ActivityEvent {
 		},
 	}
 }
+
+func BuildGameSaveDataEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "save-data",
+		},
+	}
+}

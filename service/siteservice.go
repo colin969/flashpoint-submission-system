@@ -410,6 +410,8 @@ func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, 
 }
 
 func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int64, gameData *types.GameData) error {
+	uid := utils.UserID(ctx)
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		return dberr(err)
@@ -418,6 +420,11 @@ func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int6
 
 	err = s.pgdal.SaveGameData(dbs, gameId, date, gameData)
 	if err != nil {
+		return dberr(err)
+	}
+
+	if err := s.EmitGameSaveDataEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
