@@ -3623,12 +3623,19 @@ func (s *SiteService) NukeSessionTable(ctx context.Context) error {
 }
 
 func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, clientSecret string) error {
+	uid := utils.UserID(ctx)
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	err = s.dal.SetClientSecret(dbs, clientID, clientSecret)
 	if err != nil {
@@ -3636,6 +3643,15 @@ func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, c
 		return dberr(err)
 	}
 
+	if err := s.EmitAuthSetClientSecretEvent(pgdbs, uid, clientID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

@@ -223,3 +223,15 @@ func (s *SiteService) EmitAuthRevokeSessionEvent(pgdbs database.PGDBSession, use
 	}
 	return nil
 }
+
+func (s *SiteService) EmitAuthSetClientSecretEvent(pgdbs database.PGDBSession, userID int64, clientID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildAuthSetClientSecretEvent(userID, clientID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}

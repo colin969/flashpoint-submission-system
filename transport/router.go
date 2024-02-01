@@ -196,7 +196,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/profile/app/{%s}/generate-secret", constants.ResourceKeyClientAppID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST") // TODO activity event?
+		Methods("POST")
 
 	////////////////////////
 

@@ -67,8 +67,9 @@ type ActivityEventDataSubmission struct {
 }
 
 type ActivityEventDataAuth struct {
-	Operation string `json:"operation"`
-	SessionID *int64 `json:"session_id"`
+	Operation string  `json:"operation"`
+	SessionID *int64  `json:"session_id"`
+	ClientID  *string `json:"client_id"`
 }
 
 type ActivityEventDataGame struct {

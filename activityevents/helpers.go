@@ -222,3 +222,17 @@ func BuildAuthRevokeSessionEvent(userID, sessionID int64) *ActivityEvent {
 		},
 	}
 }
+
+func BuildAuthSetClientSecretEvent(userID int64, clientID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataAuth{
+			Operation: "set-client-secret",
+			ClientID:  &clientID,
+		},
+	}
+}
