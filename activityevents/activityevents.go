@@ -65,3 +65,7 @@ type ActivityEventDataSubmission struct {
 	CommentID    *int64  `json:"comment_id"`
 	FileID       *int64  `json:"file_id"`
 }
+
+type ActivityEventDataAuth struct {
+	Operation string `json:"operation"`
+}

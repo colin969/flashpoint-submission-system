@@ -17,7 +17,7 @@ func BuildSubmissionCreatedEvent(userID, submissionID int64) *ActivityEvent {
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Create(),
-		Data: ActivityEventDataSubmission{
+		Data: &ActivityEventDataSubmission{
 			Action:       nil,
 			SubmissionID: &submissionID,
 			CommentID:    nil,
@@ -34,7 +34,7 @@ func BuildSubmissionCommentEvent(userID int64, submissionID, commentID int64, ac
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Update(),
-		Data: ActivityEventDataSubmission{
+		Data: &ActivityEventDataSubmission{
 			Action:       &action,
 			SubmissionID: &submissionID,
 			CommentID:    &commentID,
@@ -51,7 +51,7 @@ func BuildSubmissionDownloadEvent(userID int64, submissionID, fileID int64) *Act
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Read(),
-		Data: ActivityEventDataSubmission{
+		Data: &ActivityEventDataSubmission{
 			Action:       nil,
 			SubmissionID: &submissionID,
 			CommentID:    nil,
@@ -68,7 +68,7 @@ func BuildSubmissionDeleteEvent(userID int64, submissionID int64, commentID *int
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Delete(),
-		Data: ActivityEventDataSubmission{
+		Data: &ActivityEventDataSubmission{
 			Action:       nil,
 			SubmissionID: &submissionID,
 			CommentID:    commentID,
@@ -90,11 +90,37 @@ func BuildSubmissionFreezeEvent(userID int64, submissionID int64, toFreeze bool)
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Update(),
-		Data: ActivityEventDataSubmission{
+		Data: &ActivityEventDataSubmission{
 			Action:       &action,
 			SubmissionID: &submissionID,
 			CommentID:    nil,
 			FileID:       nil,
+		},
+	}
+}
+
+func BuildLoginEvent(userID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Create(),
+		Data: &ActivityEventDataAuth{
+			Operation: "login",
+		},
+	}
+}
+
+func BuildLogoutEvent(userID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Delete(),
+		Data: &ActivityEventDataAuth{
+			Operation: "logout",
 		},
 	}
 }

@@ -1220,6 +1220,13 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 	}
 	defer dbs.Rollback()
 
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer pgdbs.Rollback()
+
 	userExists := true
 	_, err = s.dal.GetDiscordUser(dbs, discordUser.ID)
 	if err != nil {
@@ -1276,6 +1283,15 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 		return nil, dberr(err)
 	}
 
+	if err := s.EmitLoginEvent(pgdbs, discordUser.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
@@ -1332,18 +1348,34 @@ func (s *SiteService) GenAuthToken(ctx context.Context, uid int64, scope string,
 }
 
 func (s *SiteService) Logout(ctx context.Context, secret string) error {
+	uid := utils.UserID(ctx)
+
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	if err := s.dal.DeleteSession(dbs, secret); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
+	if err := s.EmitLogoutEvent(pgdbs, uid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

@@ -85,3 +85,27 @@ func (s *SiteService) EmitSubmissionFreezeEvent(pgdbs database.PGDBSession, user
 	}
 	return nil
 }
+
+func (s *SiteService) EmitLoginEvent(pgdbs database.PGDBSession, userID int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildLoginEvent(userID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitLogoutEvent(pgdbs database.PGDBSession, userID int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildLogoutEvent(userID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
