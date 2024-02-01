@@ -271,3 +271,27 @@ func (s *SiteService) EmitGameSaveDataEvent(pgdbs database.PGDBSession, userID i
 	}
 	return nil
 }
+
+func (s *SiteService) EmitAuthDeviceEvent(ctx context.Context, userID int64, clientID string, approved bool) error {
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
+	event := activityevents.BuildAuthDeviceEvent(userID, clientID, approved)
+
+	err = s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}

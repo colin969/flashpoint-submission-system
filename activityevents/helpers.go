@@ -273,3 +273,21 @@ func BuildGameSaveDataEvent(userID int64, gameUUID string) *ActivityEvent {
 		},
 	}
 }
+
+func BuildAuthDeviceEvent(userID int64, clientID string, approved bool) *ActivityEvent {
+	op := "device-approve"
+	if !approved {
+		op = "device-deny"
+	}
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataAuth{
+			Operation: op,
+			ClientID:  &clientID,
+		},
+	}
+}
