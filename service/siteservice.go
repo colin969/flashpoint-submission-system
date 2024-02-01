@@ -2376,21 +2376,21 @@ func (s *SiteService) GetStatisticsPageData(ctx context.Context) (*types.Statist
 		return err
 	})
 
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		ffc, err = s.dal.GetTotalFlashfreezeCount(dbs)
-		return err
-	})
-
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		fffc, err = s.dal.GetTotalFlashfreezeFileCount(dbs)
-		return err
-	})
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	ffc, err = s.dal.GetTotalFlashfreezeCount(dbs)
+	//	return err
+	//})
+	//
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	fffc, err = s.dal.GetTotalFlashfreezeFileCount(dbs)
+	//	return err
+	//})
 
 	errs.Go(func() error {
 		dbs, _ := s.dal.NewSession(ectx)
@@ -2400,13 +2400,13 @@ func (s *SiteService) GetStatisticsPageData(ctx context.Context) (*types.Statist
 		return err
 	})
 
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		tffs, err = s.dal.GetTotalFlashfreezeFilesize(dbs)
-		return err
-	})
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	tffs, err = s.dal.GetTotalFlashfreezeFilesize(dbs)
+	//	return err
+	//})
 
 	if err := errs.Wait(); err != nil {
 		utils.LogCtx(ctx).Error(err)

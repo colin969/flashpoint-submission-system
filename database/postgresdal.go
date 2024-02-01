@@ -2021,3 +2021,15 @@ func getCategoryID(arr []*types.TagCategory, target string) int64 {
 	}
 	return -1
 }
+
+func (d *postgresDAL) CreateEvent(dbs PGDBSession, event *types.ActivityEvent) error {
+	_, err := dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO activity_events 
+		(uid, created_at, event_data)
+		VALUES ($1, $2, $3)`,
+		event.UID, event.CreatedAt, event.EventData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
