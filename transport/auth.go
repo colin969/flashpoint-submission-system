@@ -350,6 +350,8 @@ func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 		}
 		q := u.Query()
 
+		// TODO acitivity event
+
 		// Generate code
 		code, err := a.AuthCodeStorage.NewToken(utils.UserID(ctx), client.ClientId, redirect_uri, strings.Join(validScopes, " "), logging.RequestGetRemoteAddress(r))
 		if err != nil {
@@ -652,6 +654,7 @@ func (a *App) HandleOauthDeviceResponse(w http.ResponseWriter, r *http.Request) 
 
 	action := query.Get("action")
 	if action == "approve" {
+		// TODO activty event
 		// Create a new auth token
 		uid := utils.UserID(ctx)
 		ipAddr := logging.RequestGetRemoteAddress(r)

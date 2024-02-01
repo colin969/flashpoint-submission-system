@@ -99,7 +99,7 @@ func BuildSubmissionFreezeEvent(userID int64, submissionID int64, toFreeze bool)
 	}
 }
 
-func BuildLoginEvent(userID int64) *ActivityEvent {
+func BuildAuthLoginEvent(userID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -112,7 +112,7 @@ func BuildLoginEvent(userID int64) *ActivityEvent {
 	}
 }
 
-func BuildLogoutEvent(userID int64) *ActivityEvent {
+func BuildAuthLogoutEvent(userID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -205,6 +205,20 @@ func BuildGameUnfreezeEvent(userID int64, gameUUID string) *ActivityEvent {
 		Data: &ActivityEventDataGame{
 			GameUUID:  gameUUID,
 			Operation: "unfreeze",
+		},
+	}
+}
+
+func BuildAuthRevokeSessionEvent(userID, sessionID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Delete(),
+		Data: &ActivityEventDataAuth{
+			Operation: "revoke-session",
+			SessionID: &sessionID,
 		},
 	}
 }

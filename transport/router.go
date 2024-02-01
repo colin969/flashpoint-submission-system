@@ -196,7 +196,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/profile/app/{%s}/generate-secret", constants.ResourceKeyClientAppID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event?
 
 	////////////////////////
 
@@ -235,7 +235,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/tag/{%s}", constants.ResourceKeyTagID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	f = a.UserAuthMux(
 		a.HandleTagPage, muxAny(isStaff, isTrialCurator, isInAudit))
@@ -305,7 +305,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/api/games/fetch",
 		http.HandlerFunc(a.RequestJSON(f, true))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	////////////////////////
 
@@ -349,7 +349,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}", constants.ResourceKeyGameID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	f = a.UserAuthMux(
 		a.RequestScope(a.HandleGameDataIndexPage, types.AuthScopeGameDataRead),
@@ -377,7 +377,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/web/game/{%s}/data/{%s}/edit", constants.ResourceKeyGameID, constants.ResourceKeyGameDataDate),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	f = a.UserAuthMux(
 		a.RequestScope(a.HandleDeleteGame, types.AuthScopeAll),
@@ -442,7 +442,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/index/hash/{%s}", constants.ResourceKeyHash),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event ?
 
 	////////////////////////
 
@@ -814,7 +814,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	router.Handle("/api/internal/delete-user-sessions",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleDeleteUserSessions, types.AuthScopeAll), isGod), false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	router.Handle("/api/internal/send-reminders-about-requested-changes",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleSendRemindersAboutRequestedChanges, types.AuthScopeAll), isGod), false))).
