@@ -56,7 +56,8 @@ func (*ActivityEventOperation) Delete() ActivityEventOperation {
 }
 
 type ActivityEventDataSubmission struct {
-	Action    *string `json:"action"`
-	CommentID *int64  `json:"comment_id"`
-	FileID    *int64  `json:"file_id"`
+	Action       *string `json:"action"`
+	SubmissionID *int64  `json:"submission_id"`
+	CommentID    *int64  `json:"comment_id"`
+	FileID       *int64  `json:"file_id"`
 }

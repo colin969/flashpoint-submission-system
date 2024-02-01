@@ -161,7 +161,7 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 			utils.LogCtx(ctx).Error(err)
 			return dberr(err)
 		}
-		if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, cid, c.Action, nil); err != nil {
+		if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 			utils.LogCtx(ctx).Error(err)
 			return dberr(err)
 		}
@@ -181,7 +181,7 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
-			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, cid, c.Action, nil); err != nil {
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
@@ -199,7 +199,7 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
-			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, cid, c.Action, nil); err != nil {
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
@@ -236,7 +236,7 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
-			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, cid, c.Action, nil); err != nil {
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}

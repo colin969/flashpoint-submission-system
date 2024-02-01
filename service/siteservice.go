@@ -1082,6 +1082,13 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	}
 	defer dbs.Rollback()
 
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
 	discordUser, err := s.dal.GetDiscordUser(dbs, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -1098,7 +1105,12 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		CreatedAt:    s.clock.Now(),
 	}
 
-	if err := s.dal.StoreComment(dbs, c); err != nil {
+	cid, err := s.dal.StoreComment(dbs, c)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
@@ -1108,6 +1120,10 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

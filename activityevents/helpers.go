@@ -9,7 +9,7 @@ func strptr(s string) *string {
 	return &s
 }
 
-func BuildSubmissionCommentEvent(userID int64, commentID int64, action string, fileID *int64) *ActivityEvent {
+func BuildSubmissionCommentEvent(userID int64, submissionID, commentID int64, action string, fileID *int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -17,14 +17,15 @@ func BuildSubmissionCommentEvent(userID int64, commentID int64, action string, f
 		Area:      aea.Submission(),
 		Operation: aeo.Create(),
 		Data: ActivityEventDataSubmission{
-			Action:    &action,
-			CommentID: &commentID,
-			FileID:    fileID,
+			Action:       &action,
+			SubmissionID: &submissionID,
+			CommentID:    &commentID,
+			FileID:       fileID,
 		},
 	}
 }
 
-func BuildSubmissionDownloadEvent(userID int64, fileID int64) *ActivityEvent {
+func BuildSubmissionDownloadEvent(userID int64, submissionID, fileID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -32,9 +33,10 @@ func BuildSubmissionDownloadEvent(userID int64, fileID int64) *ActivityEvent {
 		Area:      aea.Submission(),
 		Operation: aeo.Read(),
 		Data: ActivityEventDataSubmission{
-			Action:    nil,
-			CommentID: nil,
-			FileID:    &fileID,
+			Action:       nil,
+			SubmissionID: &submissionID,
+			CommentID:    nil,
+			FileID:       &fileID,
 		},
 	}
 }

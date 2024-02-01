@@ -292,9 +292,14 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 		CreatedAt:    s.clock.Now(),
 	}
 
-	if err := s.dal.StoreComment(dbs, c); err != nil {
+	cid, err := s.dal.StoreComment(dbs, c)
+	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		s.SSK.SetFailed(tempName, "internal error")
+		return &destinationFilePath, nil, 0, dberr(err)
+	}
+	if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, &fid); err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return &destinationFilePath, nil, 0, dberr(err)
 	}
 
@@ -424,10 +429,15 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 	}
 
 	if sc != nil {
-		if err := s.dal.StoreComment(dbs, sc); err != nil {
-			utils.LogCtx(ectx).Error(err)
+		cid, err := s.dal.StoreComment(dbs, sc)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
 			s.SSK.SetFailed(tempName, "internal error")
-			return &destinationFilePath, imageFilePaths, 0, dberr(err)
+			return &destinationFilePath, nil, 0, dberr(err)
+		}
+		if err := s.EmitSubmissionCommentEvent(pgdbs, sc.AuthorID, sc.SubmissionID, cid, sc.Action, &fid); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return &destinationFilePath, nil, 0, dberr(err)
 		}
 	}
 
@@ -442,20 +452,30 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 			CreatedAt:    s.clock.Now().Add(time.Second * 2),
 		}
 
-		if err := s.dal.StoreComment(dbs, sc2); err != nil {
-			utils.LogCtx(ectx).Error(err)
+		cid, err := s.dal.StoreComment(dbs, sc2)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
 			s.SSK.SetFailed(tempName, "internal error")
-			return &destinationFilePath, imageFilePaths, 0, dberr(err)
+			return &destinationFilePath, nil, 0, dberr(err)
+		}
+		if err := s.EmitSubmissionCommentEvent(pgdbs, sc2.AuthorID, sc2.SubmissionID, cid, sc2.Action, &fid); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return &destinationFilePath, nil, 0, dberr(err)
 		}
 	}
 
 	utils.LogCtx(ctx).Debug("processing bot event...")
 
 	bc := s.convertValidatorResponseToComment(vr, shouldAutofreeze)
-	if err := s.dal.StoreComment(dbs, bc); err != nil {
+	cid, err = s.dal.StoreComment(dbs, bc)
+	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		s.SSK.SetFailed(tempName, "internal error")
-		return &destinationFilePath, imageFilePaths, 0, dberr(err)
+		return &destinationFilePath, nil, 0, dberr(err)
+	}
+	if err := s.EmitSubmissionCommentEvent(pgdbs, bc.AuthorID, bc.SubmissionID, cid, bc.Action, &fid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return &destinationFilePath, nil, 0, dberr(err)
 	}
 
 	if err := s.dal.UpdateSubmissionCacheTable(dbs, submissionID); err != nil {

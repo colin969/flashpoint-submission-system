@@ -8,7 +8,7 @@ import (
 	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 )
 
-func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, fileID int64) error {
+func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, submissionID, fileID int64) error {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -16,7 +16,7 @@ func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, f
 	}
 	defer dbs.Rollback()
 
-	event := activityevents.BuildSubmissionDownloadEvent(userID, fileID)
+	event := activityevents.BuildSubmissionDownloadEvent(userID, submissionID, fileID)
 
 	err = s.pgdal.CreateEvent(dbs, event)
 	if err != nil {
@@ -26,11 +26,11 @@ func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, f
 	return nil
 }
 
-func (s *SiteService) EmitSubmissionCommentEvent(dbs database.PGDBSession, userID int64, commentID int64, action string, fileID *int64) error {
-	ctx := dbs.Ctx()
-	event := activityevents.BuildSubmissionCommentEvent(userID, commentID, action, fileID)
+func (s *SiteService) EmitSubmissionCommentEvent(pgdbs database.PGDBSession, userID int64, submissionID int64, commentID int64, action string, fileID *int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildSubmissionCommentEvent(userID, submissionID, commentID, action, fileID)
 
-	err := s.pgdal.CreateEvent(dbs, event)
+	err := s.pgdal.CreateEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

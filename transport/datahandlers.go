@@ -32,7 +32,7 @@ func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Reques
 	}
 	sf := sfs[0]
 
-	err = a.Service.EmitSubmissionDownloadEvent(ctx, uid, sfid)
+	err = a.Service.EmitSubmissionDownloadEvent(ctx, uid, sf.SubmissionID, sfid)
 	if err != nil {
 		writeError(ctx, w, err)
 		return
