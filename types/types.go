@@ -80,6 +80,7 @@ type Comment struct {
 }
 
 type SubmissionFile struct {
+	ID               int64
 	SubmitterID      int64
 	SubmissionID     int64
 	OriginalFilename string

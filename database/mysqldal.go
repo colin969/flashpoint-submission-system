@@ -320,7 +320,7 @@ func (d *mysqlDAL) GetSubmissionFiles(dbs DBSession, sfids []int64) ([]*types.Su
 	}
 
 	q := `
-		SELECT fk_user_id, fk_submission_id, original_filename, current_filename, size, created_at, md5sum, sha256sum 
+		SELECT id, fk_user_id, fk_submission_id, original_filename, current_filename, size, created_at, md5sum, sha256sum 
 		FROM submission_file 
 		WHERE id IN(?` + strings.Repeat(",?", len(sfids)-1) + `)
 		AND deleted_at IS NULL
@@ -337,7 +337,7 @@ func (d *mysqlDAL) GetSubmissionFiles(dbs DBSession, sfids []int64) ([]*types.Su
 	for rows.Next() {
 		sf := &types.SubmissionFile{}
 		var uploadedAt int64
-		err := rows.Scan(&sf.SubmitterID, &sf.SubmissionID, &sf.OriginalFilename, &sf.CurrentFilename, &sf.Size, &uploadedAt, &sf.MD5Sum, &sf.SHA256Sum)
+		err := rows.Scan(&sf.ID, &sf.SubmitterID, &sf.SubmissionID, &sf.OriginalFilename, &sf.CurrentFilename, &sf.Size, &uploadedAt, &sf.MD5Sum, &sf.SHA256Sum)
 		if err != nil {
 			return nil, err
 		}
