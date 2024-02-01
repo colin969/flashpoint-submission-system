@@ -104,7 +104,7 @@ func (s *SiteService) EmitAuthLoginEvent(pgdbs database.PGDBSession, userID int6
 	return nil
 }
 
-func (s *SiteService) EmitAuthLogoutEvent(pgdbs database.PGDBSession, userID int64) error {
+func (s *SiteService) EmitAuthLogoutEvent(pgdbs database.PGDBSession, userID string) error {
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildAuthLogoutEvent(userID)
 

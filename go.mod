@@ -1,37 +1,36 @@
 module github.com/FlashpointProject/flashpoint-submission-system
 
-go 1.20
+go 1.21
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/agnivade/levenshtein v1.1.1
-	github.com/bwmarrin/discordgo v0.25.0
-	github.com/felixge/httpsnoop v1.0.2
-	github.com/gemnasium/logrus-graylog-hook/v3 v3.1.0
-	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gofrs/uuid v4.2.0+incompatible
+	github.com/bwmarrin/discordgo v0.27.1
+	github.com/felixge/httpsnoop v1.0.4
+	github.com/gemnasium/logrus-graylog-hook/v3 v3.2.0
+	github.com/go-sql-driver/mysql v1.7.1
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang-migrate/migrate v3.5.4+incompatible
-	github.com/google/uuid v1.3.0
-	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/schema v1.2.0
-	github.com/gorilla/securecookie v1.1.1
-	github.com/jackc/pgx/v5 v5.3.1
-	github.com/joho/godotenv v1.4.0
-	github.com/kofalt/go-memoize v0.0.0-20210721235729-46a601ff34b8
-	github.com/mattn/go-sqlite3 v1.14.12
+	github.com/google/uuid v1.6.0
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/schema v1.2.1
+	github.com/gorilla/securecookie v1.1.2
+	github.com/jackc/pgx/v5 v5.5.2
+	github.com/joho/godotenv v1.5.1
+	github.com/kofalt/go-memoize v0.0.0-20220914132407-0b5d6a304579
+	github.com/mattn/go-sqlite3 v1.14.21
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.8.1
-	golang.org/x/crypto v0.15.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
-	golang.org/x/oauth2 v0.6.0
-	golang.org/x/sync v0.1.0
+	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/testify v1.8.4
+	golang.org/x/crypto v0.18.0
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+	golang.org/x/oauth2 v0.16.0
+	golang.org/x/sync v0.6.0
 	golang.org/x/text v0.14.0
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -41,7 +40,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/puddle/v2 v2.2.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -49,9 +48,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -429,7 +429,7 @@ func (a *App) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Service.Logout(ctx, token.Secret); err != nil {
+	if err := a.Service.Logout(ctx, token); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr(msg, http.StatusInternalServerError))
 		return

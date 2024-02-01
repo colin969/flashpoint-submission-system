@@ -81,8 +81,8 @@ func (r *RealClock) Unix(sec int64, nsec int64) time.Time {
 	return time.Unix(sec, nsec)
 }
 
-// authToken is authToken
-type authToken struct {
+// AuthToken is AuthToken
+type AuthToken struct {
 	Secret string
 	UserID string
 }
@@ -95,22 +95,22 @@ func NewAuthTokenProvider() *authTokenProvider {
 }
 
 type AuthTokenizer interface {
-	CreateAuthToken(userID int64) (*authToken, error)
+	CreateAuthToken(userID int64) (*AuthToken, error)
 }
 
-func (a *authTokenProvider) CreateAuthToken(userID int64) (*authToken, error) {
+func (a *authTokenProvider) CreateAuthToken(userID int64) (*AuthToken, error) {
 	s, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	return &authToken{
+	return &AuthToken{
 		Secret: s.String(),
 		UserID: fmt.Sprint(userID),
 	}, nil
 }
 
 // ParseAuthToken parses map into token
-func ParseAuthToken(value map[string]string) (*authToken, error) {
+func ParseAuthToken(value map[string]string) (*AuthToken, error) {
 	secret, ok := value["Secret"]
 	if !ok {
 		return nil, fmt.Errorf("missing Secret")
@@ -119,13 +119,13 @@ func ParseAuthToken(value map[string]string) (*authToken, error) {
 	if !ok {
 		return nil, fmt.Errorf("missing userid")
 	}
-	return &authToken{
+	return &AuthToken{
 		Secret: secret,
 		UserID: userID,
 	}, nil
 }
 
-func MapAuthToken(token *authToken) map[string]string {
+func MapAuthToken(token *AuthToken) map[string]string {
 	return map[string]string{"Secret": token.Secret, "userID": token.UserID}
 }
 
@@ -1219,7 +1219,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	return nil
 }
 
-func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*authToken, error) {
+func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*AuthToken, error) {
 	getServerRoles := func() (interface{}, error) {
 		return s.authBot.GetFlashpointRoles()
 	}
@@ -1389,9 +1389,7 @@ func (s *SiteService) GenAuthToken(ctx context.Context, uid int64, scope string,
 	return MapAuthToken(authToken), nil
 }
 
-func (s *SiteService) Logout(ctx context.Context, secret string) error {
-	uid := utils.UserID(ctx)
-
+func (s *SiteService) Logout(ctx context.Context, token *AuthToken) error {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -1405,11 +1403,11 @@ func (s *SiteService) Logout(ctx context.Context, secret string) error {
 	}
 	defer pgdbs.Rollback()
 
-	if err := s.dal.DeleteSession(dbs, secret); err != nil {
+	if err := s.dal.DeleteSession(dbs, token.Secret); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
-	if err := s.EmitAuthLogoutEvent(pgdbs, uid); err != nil {
+	if err := s.EmitAuthLogoutEvent(pgdbs, token.UserID); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}

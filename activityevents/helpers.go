@@ -108,10 +108,10 @@ func BuildAuthLoginEvent(userID int64) *ActivityEvent {
 	}
 }
 
-func BuildAuthLogoutEvent(userID int64) *ActivityEvent {
+func BuildAuthLogoutEvent(userID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Delete(),
