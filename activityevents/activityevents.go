@@ -69,3 +69,7 @@ type ActivityEventDataSubmission struct {
 type ActivityEventDataAuth struct {
 	Operation string `json:"operation"`
 }
+
+type ActivityEventDataGame struct {
+	Operation string `json:"operation"`
+}

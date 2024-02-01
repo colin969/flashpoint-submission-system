@@ -921,6 +921,7 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	gameId := params[constants.ResourceKeyGameID]
 	revisionDate := ""
@@ -936,7 +937,7 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	const maxUploadSize = 15 << 20 // 10 MB
+	const maxUploadSize = 15 << 20 // 15 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
@@ -997,6 +998,10 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := a.Service.EmitGameLogoUpdateEvent(ctx, uid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+	}
+
 	url := fmt.Sprintf("%s/Logos/%s/%s/%s.png",
 		a.Conf.ImagesCdn, gameId[:2], gameId[2:4], gameId)
 	// Clear the image microservice cached file
@@ -1014,11 +1019,11 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	// File saved successfully
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("File uploaded and saved successfully"))
-
 }
 
 func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	gameId := params[constants.ResourceKeyGameID]
 	revisionDate := ""
@@ -1034,7 +1039,7 @@ func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	const maxUploadSize = 15 << 20 // 10 MB
+	const maxUploadSize = 15 << 20 // 15 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
@@ -1093,6 +1098,10 @@ func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(dst, file); err != nil {
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
+	}
+
+	if err := a.Service.EmitGameScreenshotUpdateEvent(ctx, uid); err != nil {
+		utils.LogCtx(ctx).Error(err)
 	}
 
 	url := fmt.Sprintf("%s/Screenshots/%s/%s/%s.png",

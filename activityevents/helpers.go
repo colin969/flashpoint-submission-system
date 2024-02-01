@@ -124,3 +124,29 @@ func BuildLogoutEvent(userID int64) *ActivityEvent {
 		},
 	}
 }
+
+func BuildGameLogoUpdateEvent(userID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			Operation: "logo-update",
+		},
+	}
+}
+
+func BuildGameScreenshotUpdateEvent(userID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			Operation: "screenshot-update",
+		},
+	}
+}

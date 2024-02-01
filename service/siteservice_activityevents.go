@@ -23,6 +23,12 @@ func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, s
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
+
+	if err := dbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	return nil
 }
 
@@ -107,5 +113,53 @@ func (s *SiteService) EmitLogoutEvent(pgdbs database.PGDBSession, userID int64) 
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
+	return nil
+}
+
+func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64) error {
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
+	event := activityevents.BuildGameLogoUpdateEvent(userID)
+
+	err = s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
+}
+
+func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID int64) error {
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
+	event := activityevents.BuildGameScreenshotUpdateEvent(userID)
+
+	err = s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	return nil
 }
