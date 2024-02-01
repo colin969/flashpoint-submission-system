@@ -3090,6 +3090,11 @@ func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 
 	game.ArchiveState = existingGame.ArchiveState
 
+	if err := s.EmitGameSaveEvent(dbs, uid, game.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	err = s.pgdal.SaveGame(dbs, game, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)

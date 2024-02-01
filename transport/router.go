@@ -349,7 +349,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/game/{%s}", constants.ResourceKeyGameID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST") // TODO activity event
+		Methods("POST")
 
 	f = a.UserAuthMux(
 		a.RequestScope(a.HandleGameDataIndexPage, types.AuthScopeGameDataRead),

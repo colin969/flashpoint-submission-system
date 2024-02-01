@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-func strptr(s string) *string {
-	return &s
-}
-
 // BuildSubmissionCreatedEvent is used for submission creation
 func BuildSubmissionCreatedEvent(userID, submissionID int64) *ActivityEvent {
 	return &ActivityEvent{
@@ -246,6 +242,20 @@ func BuildTagUpdateEvent(userID, tagID int64) *ActivityEvent {
 		Operation: aeo.Update(),
 		Data: &ActivityEventDataTag{
 			TagID: tagID,
+		},
+	}
+}
+
+func BuildGameSaveEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "save",
 		},
 	}
 }

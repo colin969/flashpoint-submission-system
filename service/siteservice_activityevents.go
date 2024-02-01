@@ -247,3 +247,15 @@ func (s *SiteService) EmitTagUpdateEvent(pgdbs database.PGDBSession, userID, tag
 	}
 	return nil
 }
+
+func (s *SiteService) EmitGameSaveEvent(pgdbs database.PGDBSession, userID int64, gameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameSaveEvent(userID, gameUUID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
