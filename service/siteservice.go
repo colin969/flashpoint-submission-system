@@ -1155,7 +1155,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
-	if err := s.EmitSubmissionCommentEvent(pgdbs, uid, c.SubmissionID, cid, c.Action, nil); err != nil {
+	if err := s.EmitSubmissionOverrideEvent(pgdbs, uid, c.SubmissionID, cid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
