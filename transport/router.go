@@ -235,7 +235,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/tag/{%s}", constants.ResourceKeyTagID),
 		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("POST") // TODO activity event
+		Methods("POST")
 
 	f = a.UserAuthMux(
 		a.HandleTagPage, muxAny(isStaff, isTrialCurator, isInAudit))
@@ -305,7 +305,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/api/games/fetch",
 		http.HandlerFunc(a.RequestJSON(f, true))).
-		Methods("POST") // TODO activity event
+		Methods("POST")
 
 	////////////////////////
 

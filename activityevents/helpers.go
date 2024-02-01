@@ -236,3 +236,16 @@ func BuildAuthSetClientSecretEvent(userID int64, clientID string) *ActivityEvent
 		},
 	}
 }
+
+func BuildTagUpdateEvent(userID, tagID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Tag(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataTag{
+			TagID: tagID,
+		},
+	}
+}

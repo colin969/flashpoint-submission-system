@@ -76,3 +76,7 @@ type ActivityEventDataGame struct {
 	GameUUID  string `json:"game_uuid"`
 	Operation string `json:"operation"`
 }
+
+type ActivityEventDataTag struct {
+	TagID int64 `json:"tag_id"`
+}

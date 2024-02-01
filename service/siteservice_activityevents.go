@@ -235,3 +235,15 @@ func (s *SiteService) EmitAuthSetClientSecretEvent(pgdbs database.PGDBSession, u
 	}
 	return nil
 }
+
+func (s *SiteService) EmitTagUpdateEvent(pgdbs database.PGDBSession, userID, tagID int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildTagUpdateEvent(userID, tagID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}

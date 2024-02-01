@@ -499,6 +499,11 @@ func (s *SiteService) SaveTag(ctx context.Context, tag *types.Tag) error {
 	}
 	defer dbs.Rollback()
 
+	if err := s.EmitTagUpdateEvent(dbs, uid, tag.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	err = s.pgdal.SaveTag(dbs, tag, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
