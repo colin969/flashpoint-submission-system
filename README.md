@@ -1,8 +1,8 @@
 # flashpoint-submission-system
 
-it's a thing, and it's pretty WIP
+Submission management system for https://flashpointarchive.org/ or something like that. Now with all kinds of functionality duct-taped on the sides.
 
-it will be a submission management system for https://flashpointarchive.org/ or something
+![spinny spin](static/crystal-spin.webm)
 
 <img src="static/opal.png" alt="drawing" width="200"/>
 
@@ -19,11 +19,6 @@ it will be a submission management system for https://flashpointarchive.org/ or 
   flashfreeze https://github.com/Dri0m/recursive-archive-indexer (make command available in this repo)
 - fill in all the stuff in .env (which is complex and needs more description here, yea)
 - start the thing using `go run ./main/*.go`
-
-## TODO stuff
-
-- tests are definitely broken and need some love
-- redundant code and code weirdness is present to remind you that you shouldn't code like this
 
 it looks something like this
 

@@ -998,7 +998,7 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Service.EmitGameLogoUpdateEvent(ctx, uid); err != nil {
+	if err := a.Service.EmitGameLogoUpdateEvent(ctx, uid, gameId); err != nil {
 		utils.LogCtx(ctx).Error(err)
 	}
 
@@ -1100,7 +1100,7 @@ func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Service.EmitGameScreenshotUpdateEvent(ctx, uid); err != nil {
+	if err := a.Service.EmitGameScreenshotUpdateEvent(ctx, uid, gameId); err != nil {
 		utils.LogCtx(ctx).Error(err)
 	}
 

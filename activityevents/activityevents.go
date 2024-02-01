@@ -71,5 +71,6 @@ type ActivityEventDataAuth struct {
 }
 
 type ActivityEventDataGame struct {
+	GameUUID  string `json:"game_uuid"`
 	Operation string `json:"operation"`
 }

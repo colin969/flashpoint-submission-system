@@ -116,7 +116,7 @@ func (s *SiteService) EmitLogoutEvent(pgdbs database.PGDBSession, userID int64) 
 	return nil
 }
 
-func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64) error {
+func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64, gameUUID string) error {
 	pgdbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -124,7 +124,7 @@ func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64)
 	}
 	defer pgdbs.Rollback()
 
-	event := activityevents.BuildGameLogoUpdateEvent(userID)
+	event := activityevents.BuildGameLogoUpdateEvent(userID, gameUUID)
 
 	err = s.pgdal.CreateEvent(pgdbs, event)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64)
 	return nil
 }
 
-func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID int64) error {
+func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID int64, gameUUID string) error {
 	pgdbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -148,7 +148,7 @@ func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID 
 	}
 	defer pgdbs.Rollback()
 
-	event := activityevents.BuildGameScreenshotUpdateEvent(userID)
+	event := activityevents.BuildGameScreenshotUpdateEvent(userID, gameUUID)
 
 	err = s.pgdal.CreateEvent(pgdbs, event)
 	if err != nil {

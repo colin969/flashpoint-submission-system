@@ -125,7 +125,7 @@ func BuildLogoutEvent(userID int64) *ActivityEvent {
 	}
 }
 
-func BuildGameLogoUpdateEvent(userID int64) *ActivityEvent {
+func BuildGameLogoUpdateEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -133,12 +133,13 @@ func BuildGameLogoUpdateEvent(userID int64) *ActivityEvent {
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
 		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
 			Operation: "logo-update",
 		},
 	}
 }
 
-func BuildGameScreenshotUpdateEvent(userID int64) *ActivityEvent {
+func BuildGameScreenshotUpdateEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    strconv.FormatInt(userID, 10),
@@ -146,6 +147,7 @@ func BuildGameScreenshotUpdateEvent(userID int64) *ActivityEvent {
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
 		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
 			Operation: "screenshot-update",
 		},
 	}
