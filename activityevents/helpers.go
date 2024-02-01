@@ -291,3 +291,17 @@ func BuildAuthDeviceEvent(userID int64, clientID string, approved bool) *Activit
 		},
 	}
 }
+
+func BuildAuthNewTokenEvent(userID int64, clientID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Create(),
+		Data: &ActivityEventDataAuth{
+			Operation: "new-token",
+			ClientID:  &clientID,
+		},
+	}
+}

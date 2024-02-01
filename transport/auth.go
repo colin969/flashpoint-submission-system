@@ -282,6 +282,7 @@ func (a *App) HandleDiscordCallback(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	err := r.ParseForm()
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -350,8 +351,6 @@ func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 		}
 		q := u.Query()
 
-		// TODO acitivity event
-
 		// Generate code
 		code, err := a.AuthCodeStorage.NewToken(utils.UserID(ctx), client.ClientId, redirect_uri, strings.Join(validScopes, " "), logging.RequestGetRemoteAddress(r))
 		if err != nil {
@@ -359,6 +358,13 @@ func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 			writeError(ctx, w, perr("failed to create auth code", http.StatusInternalServerError))
 			return
 		}
+
+		if err := a.Service.EmitAuthNewTokenEvent(ctx, uid, client.ClientId); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			writeError(ctx, w, perr("internal error", http.StatusInternalServerError))
+			return
+		}
+
 		q.Add("code", code.Code)
 		q.Add("state", state)
 		u.RawQuery = q.Encode()
