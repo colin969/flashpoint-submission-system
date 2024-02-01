@@ -55,6 +55,10 @@ func (*ActivityEventOperation) Delete() ActivityEventOperation {
 	return "delete"
 }
 
+func (*ActivityEventOperation) Restore() ActivityEventOperation {
+	return "restore"
+}
+
 type ActivityEventDataSubmission struct {
 	Action       *string `json:"action"`
 	SubmissionID *int64  `json:"submission_id"`

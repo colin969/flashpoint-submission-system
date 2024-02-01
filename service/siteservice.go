@@ -959,6 +959,12 @@ func (s *SiteService) SoftDeleteSubmissionFile(ctx context.Context, sfid int64, 
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	sfs, err := s.dal.GetSubmissionFiles(dbs, []int64{sfid})
 	if err != nil {
@@ -977,11 +983,20 @@ func (s *SiteService) SoftDeleteSubmissionFile(ctx context.Context, sfid int64, 
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, sid, nil, &sfid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, authorID, uid, &sid, nil, &sfid, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1001,6 +1016,12 @@ func (s *SiteService) SoftDeleteSubmission(ctx context.Context, sid int64, delet
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -1015,11 +1036,20 @@ func (s *SiteService) SoftDeleteSubmission(ctx context.Context, sid int64, delet
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, sid, nil, nil); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, authorID, uid, &sid, nil, nil, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1039,6 +1069,12 @@ func (s *SiteService) SoftDeleteComment(ctx context.Context, cid int64, deleteRe
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	c, err := s.dal.GetCommentByID(dbs, cid)
 	if err != nil {
@@ -1057,11 +1093,20 @@ func (s *SiteService) SoftDeleteComment(ctx context.Context, cid int64, deleteRe
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, c.SubmissionID, &cid, nil); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, c.AuthorID, uid, &c.SubmissionID, &cid, nil, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1110,7 +1155,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
-	if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
+	if err := s.EmitSubmissionCommentEvent(pgdbs, uid, c.SubmissionID, cid, c.Action, nil); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
@@ -1903,6 +1948,12 @@ func (s *SiteService) processReceivedResumableSubmission(ctx context.Context, ui
 		return err
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		s.SSK.SetFailed(tempName, "internal error")
+		cleanup()
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		s.SSK.SetFailed(tempName, "internal error")
@@ -3266,6 +3317,12 @@ func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -3280,11 +3337,20 @@ func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionFreezeEvent(pgdbs, uid, sid, true); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createFreezeNotification(dbs, authorID, uid, sid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -3304,6 +3370,12 @@ func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -3318,16 +3390,24 @@ func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionFreezeEvent(pgdbs, uid, sid, false); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createUnfreezeNotification(dbs, authorID, uid, sid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
-
 	s.announceNotification()
 
 	return nil

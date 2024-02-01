@@ -216,6 +216,11 @@ func (s *SiteService) processReceivedSubmission(ctx context.Context, dbs databas
 			s.SSK.SetFailed(tempName, "internal error")
 			return &destinationFilePath, nil, 0, dberr(err)
 		}
+		if err := s.EmitSubmissionCreatedEvent(pgdbs, uid, submissionID); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			s.SSK.SetFailed(tempName, "internal error")
+			return &destinationFilePath, nil, 0, dberr(err)
+		}
 	} else {
 		submissionID = *sid
 		isSubmissionNew = false

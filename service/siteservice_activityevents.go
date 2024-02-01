@@ -26,9 +26,45 @@ func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, s
 	return nil
 }
 
-func (s *SiteService) EmitSubmissionCommentEvent(pgdbs database.PGDBSession, userID int64, submissionID int64, commentID int64, action string, fileID *int64) error {
+func (s *SiteService) EmitSubmissionCreatedEvent(pgdbs database.PGDBSession, userID, submissionID int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildSubmissionCreatedEvent(userID, submissionID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitSubmissionCommentEvent(pgdbs database.PGDBSession, userID, submissionID, commentID int64, action string, fileID *int64) error {
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionCommentEvent(userID, submissionID, commentID, action, fileID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitSubmissionDeleteEvent(pgdbs database.PGDBSession, userID, submissionID int64, commentID, fileID *int64) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildSubmissionDeleteEvent(userID, submissionID, commentID, fileID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitSubmissionFreezeEvent(pgdbs database.PGDBSession, userID, submissionID int64, toFreeze bool) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildSubmissionFreezeEvent(userID, submissionID, toFreeze)
 
 	err := s.pgdal.CreateEvent(pgdbs, event)
 	if err != nil {
