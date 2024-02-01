@@ -152,3 +152,59 @@ func BuildGameScreenshotUpdateEvent(userID int64, gameUUID string) *ActivityEven
 		},
 	}
 }
+
+func BuildGameDeleteEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Delete(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "delete",
+		},
+	}
+}
+
+func BuildGameRestoreEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Restore(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "restore",
+		},
+	}
+}
+
+func BuildGameFreezeEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "freeze",
+		},
+	}
+}
+
+func BuildGameUnfreezeEvent(userID int64, gameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    strconv.FormatInt(userID, 10),
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Update(),
+		Data: &ActivityEventDataGame{
+			GameUUID:  gameUUID,
+			Operation: "unfreeze",
+		},
+	}
+}

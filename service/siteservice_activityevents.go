@@ -163,3 +163,51 @@ func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID 
 
 	return nil
 }
+
+func (s *SiteService) EmitGameDeleteEvent(pgdbs database.PGDBSession, userID int64, gameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameDeleteEvent(userID, gameUUID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitGameRestoreEvent(pgdbs database.PGDBSession, userID int64, gameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameRestoreEvent(userID, gameUUID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitGameFreezeEvent(pgdbs database.PGDBSession, userID int64, gameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameFreezeEvent(userID, gameUUID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}
+
+func (s *SiteService) EmitGameUnfreezeEvent(pgdbs database.PGDBSession, userID int64, gameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameUnfreezeEvent(userID, gameUUID)
+
+	err := s.pgdal.CreateEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}

@@ -243,14 +243,21 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 	err = s.pgdal.DeleteGame(dbs, gameId, uid, reason, imagesPath, gamesPath,
 		deletedImagesPath, deletedGamesPath, frozenPacksPath)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return err
 	}
 
 	// Move game data and images (where exist)
 	// @TODO
 
+	if err := s.EmitGameDeleteEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	err = dbs.Commit()
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
@@ -276,11 +283,18 @@ func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason str
 	err = s.pgdal.RestoreGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath,
 		deletedGamesPath, frozenPacksPath)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return err
+	}
+
+	if err := s.EmitGameRestoreEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
 	}
 
 	err = dbs.Commit()
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
@@ -3462,6 +3476,11 @@ func (s *SiteService) FreezeGame(ctx context.Context, gameId string, uid int64, 
 	utils.MetadataMutex.Lock()
 	defer utils.MetadataMutex.Unlock()
 
+	if err := s.EmitGameFreezeEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	game.ArchiveState = types.Archived
 	err = s.pgdal.SaveGame(dbs, game, uid)
 	if err != nil {
@@ -3518,6 +3537,11 @@ func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64
 	// Lock the database for sequential write
 	utils.MetadataMutex.Lock()
 	defer utils.MetadataMutex.Unlock()
+
+	if err := s.EmitGameUnfreezeEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 
 	game.ArchiveState = types.Available
 	err = s.pgdal.SaveGame(dbs, game, uid)
