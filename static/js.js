@@ -542,7 +542,7 @@ function populateUserStatisticsTable() {
             return;
         }
 
-        processUserStatisticsInParallel(users.users, 3); // Configurable number of parallel requests
+        processUserStatisticsInParallel(users.users, 4); // Configurable number of parallel requests
     });
 
     try {
