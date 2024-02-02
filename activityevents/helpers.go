@@ -1,7 +1,6 @@
 package activityevents
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -9,7 +8,7 @@ import (
 func BuildSubmissionCreatedEvent(userID, submissionID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Create(),
@@ -26,7 +25,7 @@ func BuildSubmissionCreatedEvent(userID, submissionID int64) *ActivityEvent {
 func BuildSubmissionCommentEvent(userID int64, submissionID, commentID int64, action string, fileID *int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Update(),
@@ -43,7 +42,7 @@ func BuildSubmissionCommentEvent(userID int64, submissionID, commentID int64, ac
 func BuildSubmissionDownloadEvent(userID int64, submissionID, fileID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Read(),
@@ -60,7 +59,7 @@ func BuildSubmissionDownloadEvent(userID int64, submissionID, fileID int64) *Act
 func BuildSubmissionDeleteEvent(userID int64, submissionID int64, commentID *int64, fileID *int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Delete(),
@@ -82,7 +81,7 @@ func BuildSubmissionFreezeEvent(userID int64, submissionID int64, toFreeze bool)
 
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Submission(),
 		Operation: aeo.Update(),
@@ -98,7 +97,7 @@ func BuildSubmissionFreezeEvent(userID int64, submissionID int64, toFreeze bool)
 func BuildAuthLoginEvent(userID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Create(),
@@ -108,7 +107,7 @@ func BuildAuthLoginEvent(userID int64) *ActivityEvent {
 	}
 }
 
-func BuildAuthLogoutEvent(userID string) *ActivityEvent {
+func BuildAuthLogoutEvent(userID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
 		UserID:    userID,
@@ -124,7 +123,7 @@ func BuildAuthLogoutEvent(userID string) *ActivityEvent {
 func BuildGameLogoUpdateEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -138,7 +137,7 @@ func BuildGameLogoUpdateEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildGameScreenshotUpdateEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -152,7 +151,7 @@ func BuildGameScreenshotUpdateEvent(userID int64, gameUUID string) *ActivityEven
 func BuildGameDeleteEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Delete(),
@@ -166,7 +165,7 @@ func BuildGameDeleteEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildGameRestoreEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Restore(),
@@ -180,7 +179,7 @@ func BuildGameRestoreEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildGameFreezeEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -194,7 +193,7 @@ func BuildGameFreezeEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildGameUnfreezeEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -208,7 +207,7 @@ func BuildGameUnfreezeEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildAuthRevokeSessionEvent(userID, sessionID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Delete(),
@@ -222,7 +221,7 @@ func BuildAuthRevokeSessionEvent(userID, sessionID int64) *ActivityEvent {
 func BuildAuthSetClientSecretEvent(userID int64, clientID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Update(),
@@ -236,7 +235,7 @@ func BuildAuthSetClientSecretEvent(userID int64, clientID string) *ActivityEvent
 func BuildTagUpdateEvent(userID, tagID int64) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Tag(),
 		Operation: aeo.Update(),
@@ -249,7 +248,7 @@ func BuildTagUpdateEvent(userID, tagID int64) *ActivityEvent {
 func BuildGameSaveEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -263,7 +262,7 @@ func BuildGameSaveEvent(userID int64, gameUUID string) *ActivityEvent {
 func BuildGameSaveDataEvent(userID int64, gameUUID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Game(),
 		Operation: aeo.Update(),
@@ -281,7 +280,7 @@ func BuildAuthDeviceEvent(userID int64, clientID string, approved bool) *Activit
 	}
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Update(),
@@ -295,7 +294,7 @@ func BuildAuthDeviceEvent(userID int64, clientID string, approved bool) *Activit
 func BuildAuthNewTokenEvent(userID int64, clientID string) *ActivityEvent {
 	return &ActivityEvent{
 		ID:        -1,
-		UserID:    strconv.FormatInt(userID, 10),
+		UserID:    userID,
 		CreatedAt: time.Now(),
 		Area:      aea.Auth(),
 		Operation: aeo.Create(),

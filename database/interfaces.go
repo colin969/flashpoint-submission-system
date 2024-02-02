@@ -64,7 +64,8 @@ type PGDAL interface {
 	UpdateTagsFromTagsList(dbs PGDBSession, tagsList []types.Tag) error
 	ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Game, patch *types.GameContentPatch, addApps []*types.CurationAdditionalApp) error
 
-	CreateEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error
+	CreateActivityEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error
+	GetActivityEvents(dbs PGDBSession, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error)
 }
 
 type DAL interface {

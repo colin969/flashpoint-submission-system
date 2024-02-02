@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -3673,4 +3674,14 @@ func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, c
 	}
 
 	return nil
+}
+
+func (s *SiteService) GetActivityEvents(ctx context.Context, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error) {
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer pgdbs.Rollback()
+	return s.pgdal.GetActivityEvents(pgdbs, filter)
 }

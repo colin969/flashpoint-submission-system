@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"github.com/FlashpointProject/flashpoint-submission-system/database"
@@ -18,7 +19,7 @@ func (s *SiteService) EmitSubmissionDownloadEvent(ctx context.Context, userID, s
 
 	event := activityevents.BuildSubmissionDownloadEvent(userID, submissionID, fileID)
 
-	err = s.pgdal.CreateEvent(dbs, event)
+	err = s.pgdal.CreateActivityEvent(dbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -36,7 +37,7 @@ func (s *SiteService) EmitSubmissionCreatedEvent(pgdbs database.PGDBSession, use
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionCreatedEvent(userID, submissionID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -48,7 +49,7 @@ func (s *SiteService) EmitSubmissionCommentEvent(pgdbs database.PGDBSession, use
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionCommentEvent(userID, submissionID, commentID, action, fileID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -60,7 +61,7 @@ func (s *SiteService) EmitSubmissionOverrideEvent(pgdbs database.PGDBSession, us
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionCommentEvent(userID, submissionID, commentID, "approve-override", nil)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -72,7 +73,7 @@ func (s *SiteService) EmitSubmissionDeleteEvent(pgdbs database.PGDBSession, user
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionDeleteEvent(userID, submissionID, commentID, fileID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -84,7 +85,7 @@ func (s *SiteService) EmitSubmissionFreezeEvent(pgdbs database.PGDBSession, user
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildSubmissionFreezeEvent(userID, submissionID, toFreeze)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -96,7 +97,7 @@ func (s *SiteService) EmitAuthLoginEvent(pgdbs database.PGDBSession, userID int6
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildAuthLoginEvent(userID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -106,9 +107,12 @@ func (s *SiteService) EmitAuthLoginEvent(pgdbs database.PGDBSession, userID int6
 
 func (s *SiteService) EmitAuthLogoutEvent(pgdbs database.PGDBSession, userID string) error {
 	ctx := pgdbs.Ctx()
-	event := activityevents.BuildAuthLogoutEvent(userID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	uid, _ := strconv.ParseInt(userID, 10, 64)
+
+	event := activityevents.BuildAuthLogoutEvent(uid)
+
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -126,7 +130,7 @@ func (s *SiteService) EmitGameLogoUpdateEvent(ctx context.Context, userID int64,
 
 	event := activityevents.BuildGameLogoUpdateEvent(userID, gameUUID)
 
-	err = s.pgdal.CreateEvent(pgdbs, event)
+	err = s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -150,7 +154,7 @@ func (s *SiteService) EmitGameScreenshotUpdateEvent(ctx context.Context, userID 
 
 	event := activityevents.BuildGameScreenshotUpdateEvent(userID, gameUUID)
 
-	err = s.pgdal.CreateEvent(pgdbs, event)
+	err = s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -168,7 +172,7 @@ func (s *SiteService) EmitGameDeleteEvent(pgdbs database.PGDBSession, userID int
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameDeleteEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -180,7 +184,7 @@ func (s *SiteService) EmitGameRestoreEvent(pgdbs database.PGDBSession, userID in
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameRestoreEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -192,7 +196,7 @@ func (s *SiteService) EmitGameFreezeEvent(pgdbs database.PGDBSession, userID int
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameFreezeEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -204,7 +208,7 @@ func (s *SiteService) EmitGameUnfreezeEvent(pgdbs database.PGDBSession, userID i
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameUnfreezeEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -216,7 +220,7 @@ func (s *SiteService) EmitAuthRevokeSessionEvent(pgdbs database.PGDBSession, use
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildAuthRevokeSessionEvent(userID, sessionID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -228,7 +232,7 @@ func (s *SiteService) EmitAuthSetClientSecretEvent(pgdbs database.PGDBSession, u
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildAuthSetClientSecretEvent(userID, clientID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -240,7 +244,7 @@ func (s *SiteService) EmitTagUpdateEvent(pgdbs database.PGDBSession, userID, tag
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildTagUpdateEvent(userID, tagID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -252,7 +256,7 @@ func (s *SiteService) EmitGameSaveEvent(pgdbs database.PGDBSession, userID int64
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameSaveEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -264,7 +268,7 @@ func (s *SiteService) EmitGameSaveDataEvent(pgdbs database.PGDBSession, userID i
 	ctx := pgdbs.Ctx()
 	event := activityevents.BuildGameSaveDataEvent(userID, gameUUID)
 
-	err := s.pgdal.CreateEvent(pgdbs, event)
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -282,7 +286,7 @@ func (s *SiteService) EmitAuthDeviceEvent(ctx context.Context, userID int64, cli
 
 	event := activityevents.BuildAuthDeviceEvent(userID, clientID, approved)
 
-	err = s.pgdal.CreateEvent(pgdbs, event)
+	err = s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -306,7 +310,7 @@ func (s *SiteService) EmitAuthNewTokenEvent(ctx context.Context, userID int64, c
 
 	event := activityevents.BuildAuthNewTokenEvent(userID, clientID)
 
-	err = s.pgdal.CreateEvent(pgdbs, event)
+	err = s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

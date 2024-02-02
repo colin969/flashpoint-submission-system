@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"math/rand"
 	"net/http"
@@ -1911,4 +1912,31 @@ func (a *App) HandleNukeSessionTable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeResponse(ctx, w, presp("nuked the session table", http.StatusOK), http.StatusOK)
+}
+
+func (a *App) HandleGetActivityEvents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	filter := &types.ActivityEventsFilter{}
+
+	if err := a.decoder.Decode(filter, r.URL.Query()); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
+		return
+	}
+
+	events, err := a.Service.GetActivityEvents(ctx, filter)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+
+	data := struct {
+		Events []*activityevents.ActivityEvent `json:"events"`
+	}{
+		events,
+	}
+
+	writeResponse(ctx, w, data, http.StatusOK)
 }
