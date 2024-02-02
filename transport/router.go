@@ -760,12 +760,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			muxAll(isFreezer)), false))).
 		Methods("POST")
 
-	// activity events api
+	// activity events
 
 	router.Handle(
 		"/api/activity-events",
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
 			a.RequestScope(a.HandleGetActivityEvents, types.AuthScopeAll),
+			muxAny(isStaff)), false))).
+		Methods("GET")
+
+	router.Handle(
+		"/web/user-activity",
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleUserActivityPage, types.AuthScopeUsersRead),
 			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 

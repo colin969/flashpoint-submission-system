@@ -2044,7 +2044,7 @@ func (d *postgresDAL) GetActivityEvents(dbs PGDBSession, filter *types.ActivityE
 	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, uid, created_at, event_area, event_operation, event_data FROM activity_events 
          WHERE uid=$1
            AND created_at >= $2
-           AND created_at <= $3
+           AND created_at < $3
 			ORDER BY created_at`, filter.UserID, from, to)
 	if err != nil {
 		if err == pgx.ErrNoRows {

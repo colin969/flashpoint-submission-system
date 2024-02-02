@@ -52,6 +52,11 @@
                                         <li class="pure-menu-item">
                                             <a href="/web/metadata-stats" class="pure-menu-link">Metadata Statistics</a>
                                         </li>
+                                        {{if isStaff .UserRoles}}
+                                        <li class="pure-menu-item">
+                                            <a href="/web/user-activity" class="pure-menu-link">User Activity</a>
+                                        </li>
+                                        {{end}}
                                     </ul>
                                 </li>
                             {{end}}

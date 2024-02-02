@@ -1940,3 +1940,15 @@ func (a *App) HandleGetActivityEvents(w http.ResponseWriter, r *http.Request) {
 
 	writeResponse(ctx, w, data, http.StatusOK)
 }
+
+func (a *App) HandleUserActivityPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	pageData, err := a.Service.GetBasePageData(ctx)
+	if err != nil {
+		utils.UnsetCookie(w, utils.Cookies.Login)
+		http.Redirect(w, r, "/web", http.StatusFound)
+	}
+
+	a.RenderTemplates(ctx, w, r, pageData, "templates/user-activity.gohtml")
+}
