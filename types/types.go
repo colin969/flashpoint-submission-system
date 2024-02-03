@@ -800,7 +800,7 @@ type GamePageResJSON struct {
 }
 
 type UserStatistics struct {
-	UserID           int64
+	UserID           string
 	Username         string
 	Role             string
 	LastUserActivity time.Time

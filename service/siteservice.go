@@ -2603,7 +2603,7 @@ func (s *SiteService) GetUserStatistics(ctx context.Context, uid int64) (*types.
 	}
 
 	us := &types.UserStatistics{
-		UserID:   user.ID,
+		UserID:   strconv.FormatInt(user.ID, 10),
 		Username: user.Username,
 		Role:     role,
 	}
