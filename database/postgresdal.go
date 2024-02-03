@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"github.com/FlashpointProject/flashpoint-submission-system/config"
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
@@ -2020,4 +2021,45 @@ func getCategoryID(arr []*types.TagCategory, target string) int64 {
 		}
 	}
 	return -1
+}
+
+func (d *postgresDAL) CreateActivityEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error {
+	_, err := dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO activity_events 
+		(uid, created_at, event_area, event_operation, event_data)
+		VALUES ($1, $2, $3, $4, $5)`,
+		event.UserID, event.CreatedAt, event.Area, event.Operation, event.Data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDAL) GetActivityEvents(dbs PGDBSession, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error) {
+	events := make([]*activityevents.ActivityEvent, 0)
+
+	from := time.Unix(filter.From, 0)
+	to := time.Unix(filter.To, 0)
+
+	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, uid, created_at, event_area, event_operation, event_data FROM activity_events 
+         WHERE uid=$1
+           AND created_at >= $2
+           AND created_at < $3
+			ORDER BY created_at`, filter.UserID, from, to)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return events, nil
+		}
+		return nil, err
+	}
+	for rows.Next() {
+		e := &activityevents.ActivityEvent{}
+		err = rows.Scan(&e.ID, &e.UserID, &e.CreatedAt, &e.Area, &e.Operation, &e.Data)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+
+	return events, nil
 }

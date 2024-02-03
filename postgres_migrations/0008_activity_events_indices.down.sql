@@ -1,0 +1,1 @@
+DROP INDEX idx_activity_events_on_uid_created_at;

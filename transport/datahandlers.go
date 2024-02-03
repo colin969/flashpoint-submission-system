@@ -14,6 +14,7 @@ import (
 
 func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	submissionFileID := params[constants.ResourceKeyFileID]
 
@@ -31,6 +32,12 @@ func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Reques
 	}
 	sf := sfs[0]
 
+	err = a.Service.EmitSubmissionDownloadEvent(ctx, uid, sf.SubmissionID, sfid)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
 	f, err := os.Open(fmt.Sprintf("%s/%s", a.Conf.SubmissionsDirFullPath, sf.CurrentFilename))
 
 	if err != nil {
@@ -47,6 +54,7 @@ func (a *App) HandleDownloadSubmissionFile(w http.ResponseWriter, r *http.Reques
 
 func (a *App) HandleDownloadSubmissionBatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	submissionFileIDs := strings.Split(params[constants.ResourceKeyFileIDs], ",")
 	sfids := make([]int64, 0, len(submissionFileIDs))
@@ -71,6 +79,12 @@ func (a *App) HandleDownloadSubmissionBatch(w http.ResponseWriter, r *http.Reque
 
 	for _, sf := range sfs {
 		filePaths = append(filePaths, fmt.Sprintf("%s/%s", a.Conf.SubmissionsDirFullPath, sf.CurrentFilename))
+
+		err = a.Service.EmitSubmissionDownloadEvent(ctx, uid, sf.SubmissionID, sf.ID)
+		if err != nil {
+			writeError(ctx, w, err)
+			return
+		}
 	}
 
 	filename := fmt.Sprintf("fpfss-batch-%dfiles-%s.tar", len(sfs), utils.NewRealRandomStringProvider().RandomString(16))

@@ -19,16 +19,27 @@
                                     </ul>
                                 </li>
                                 <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
-                                    <a href="#" class="pure-menu-link">Flashfreeze</a>
+                                    <a href="#" class="pure-menu-link">Not Submissions</a>
                                     <ul class="pure-menu-children left">
                                         <li class="pure-menu-item">
-                                            <a href="/web/flashfreeze/submit" class="pure-menu-link">Submit</a>
+                                            <a href="/web/tags" class="pure-menu-link">Tags</a>
                                         </li>
                                         <li class="pure-menu-item">
-                                            <a href="/web/flashfreeze/files?search-files=on" class="pure-menu-link">Browse</a>
+                                            <a href="/web/platforms" class="pure-menu-link">Platforms</a>
                                         </li>
                                     </ul>
                                 </li>
+{{/*                                <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">*/}}
+{{/*                                    <a href="#" class="pure-menu-link">Flashfreeze</a>*/}}
+{{/*                                    <ul class="pure-menu-children left">*/}}
+{{/*                                        <li class="pure-menu-item">*/}}
+{{/*                                            <a href="/web/flashfreeze/submit" class="pure-menu-link">Submit</a>*/}}
+{{/*                                        </li>*/}}
+{{/*                                        <li class="pure-menu-item">*/}}
+{{/*                                            <a href="/web/flashfreeze/files?search-files=on" class="pure-menu-link">Browse</a>*/}}
+{{/*                                        </li>*/}}
+{{/*                                    </ul>*/}}
+{{/*                                </li>*/}}
                                 <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
                                     <a href="#" class="pure-menu-link">Stats</a>
                                     <ul class="pure-menu-children left">
@@ -41,6 +52,11 @@
                                         <li class="pure-menu-item">
                                             <a href="/web/metadata-stats" class="pure-menu-link">Metadata Statistics</a>
                                         </li>
+                                        {{if isStaff .UserRoles}}
+                                        <li class="pure-menu-item">
+                                            <a href="/web/user-activity" class="pure-menu-link">User Activity</a>
+                                        </li>
+                                        {{end}}
                                     </ul>
                                 </li>
                             {{end}}

@@ -20,12 +20,18 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 	}
 	defer dbs.Rollback()
 
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
 	var message *string
 	if formMessage != "" {
 		message = &formMessage
 	}
 
-	// TODO refactor these validators into a function and cover with tests
 	actions := constants.GetAllowedActions()
 	isActionValid := false
 	for _, a := range actions {
@@ -150,7 +156,12 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 			}
 		}
 
-		if err := s.dal.StoreComment(dbs, c); err != nil {
+		cid, err := s.dal.StoreComment(dbs, c)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return dberr(err)
+		}
+		if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 			utils.LogCtx(ctx).Error(err)
 			return dberr(err)
 		}
@@ -165,7 +176,12 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				CreatedAt:    s.clock.Now().Add(time.Second),
 			}
 
-			if err := s.dal.StoreComment(dbs, c); err != nil {
+			cid, err := s.dal.StoreComment(dbs, c)
+			if err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
@@ -178,7 +194,12 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				CreatedAt:    s.clock.Now().Add(time.Second),
 			}
 
-			if err := s.dal.StoreComment(dbs, c); err != nil {
+			cid, err := s.dal.StoreComment(dbs, c)
+			if err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
@@ -210,7 +231,12 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 				CreatedAt:    s.clock.Now().Add(time.Second * 2),
 			}
 
-			if err := s.dal.StoreComment(dbs, c); err != nil {
+			cid, err := s.dal.StoreComment(dbs, c)
+			if err != nil {
+				utils.LogCtx(ctx).Error(err)
+				return dberr(err)
+			}
+			if err := s.EmitSubmissionCommentEvent(pgdbs, c.AuthorID, c.SubmissionID, cid, c.Action, nil); err != nil {
 				utils.LogCtx(ctx).Error(err)
 				return dberr(err)
 			}
@@ -224,6 +250,10 @@ func (s *SiteService) ReceiveComments(ctx context.Context, uid int64, sids []int
 		commentCounter++
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)

@@ -340,9 +340,9 @@ type mockAuthTokenProvider struct {
 	mock.Mock
 }
 
-func (m *mockAuthTokenProvider) CreateAuthToken(userID int64) (*authToken, error) {
+func (m *mockAuthTokenProvider) CreateAuthToken(userID int64) (*AuthToken, error) {
 	args := m.Called(userID)
-	return args.Get(0).(*authToken), args.Error(1)
+	return args.Get(0).(*AuthToken), args.Error(1)
 }
 
 ////////////////////////////////////////////////

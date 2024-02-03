@@ -282,6 +282,7 @@ func (a *App) HandleDiscordCallback(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	err := r.ParseForm()
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -357,6 +358,13 @@ func (a *App) HandleOauthAuthorize(w http.ResponseWriter, r *http.Request) {
 			writeError(ctx, w, perr("failed to create auth code", http.StatusInternalServerError))
 			return
 		}
+
+		if err := a.Service.EmitAuthNewTokenEvent(ctx, uid, client.ClientId); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			writeError(ctx, w, perr("internal error", http.StatusInternalServerError))
+			return
+		}
+
 		q.Add("code", code.Code)
 		q.Add("state", state)
 		u.RawQuery = q.Encode()
@@ -421,7 +429,7 @@ func (a *App) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Service.Logout(ctx, token.Secret); err != nil {
+	if err := a.Service.Logout(ctx, token); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr(msg, http.StatusInternalServerError))
 		return
@@ -638,6 +646,7 @@ func (a *App) GetServerUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleOauthDeviceResponse(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 
 	query := r.URL.Query()
 	code := query.Get("user_code")
@@ -653,7 +662,6 @@ func (a *App) HandleOauthDeviceResponse(w http.ResponseWriter, r *http.Request) 
 	action := query.Get("action")
 	if action == "approve" {
 		// Create a new auth token
-		uid := utils.UserID(ctx)
 		ipAddr := logging.RequestGetRemoteAddress(r)
 		authToken, err := a.Service.GenAuthToken(ctx, uid, token.Scope, token.ClientApplication.ClientId, ipAddr)
 		if err != nil {
@@ -671,12 +679,24 @@ func (a *App) HandleOauthDeviceResponse(w http.ResponseWriter, r *http.Request) 
 			writeError(ctx, w, perr("failed to save device token", http.StatusInternalServerError))
 			return
 		}
+
+		if err := a.Service.EmitAuthDeviceEvent(ctx, uid, token.ClientApplication.ClientId, true); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			writeError(ctx, w, perr("internal error", http.StatusInternalServerError))
+			return
+		}
 	} else if action == "deny" {
 		token.FlowState = types.DeviceFlowErrorDenied
 		err := a.DFStorage.Save(token)
 		if err != nil {
 			utils.LogCtx(ctx).Error(err)
 			writeError(ctx, w, perr("failed to save token", http.StatusInternalServerError))
+			return
+		}
+
+		if err := a.Service.EmitAuthDeviceEvent(ctx, uid, token.ClientApplication.ClientId, false); err != nil {
+			utils.LogCtx(ctx).Error(err)
+			writeError(ctx, w, perr("internal error", http.StatusInternalServerError))
 			return
 		}
 	} else {

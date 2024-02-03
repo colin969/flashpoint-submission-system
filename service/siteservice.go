@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -81,8 +82,8 @@ func (r *RealClock) Unix(sec int64, nsec int64) time.Time {
 	return time.Unix(sec, nsec)
 }
 
-// authToken is authToken
-type authToken struct {
+// AuthToken is AuthToken
+type AuthToken struct {
 	Secret string
 	UserID string
 }
@@ -95,22 +96,22 @@ func NewAuthTokenProvider() *authTokenProvider {
 }
 
 type AuthTokenizer interface {
-	CreateAuthToken(userID int64) (*authToken, error)
+	CreateAuthToken(userID int64) (*AuthToken, error)
 }
 
-func (a *authTokenProvider) CreateAuthToken(userID int64) (*authToken, error) {
+func (a *authTokenProvider) CreateAuthToken(userID int64) (*AuthToken, error) {
 	s, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	return &authToken{
+	return &AuthToken{
 		Secret: s.String(),
 		UserID: fmt.Sprint(userID),
 	}, nil
 }
 
 // ParseAuthToken parses map into token
-func ParseAuthToken(value map[string]string) (*authToken, error) {
+func ParseAuthToken(value map[string]string) (*AuthToken, error) {
 	secret, ok := value["Secret"]
 	if !ok {
 		return nil, fmt.Errorf("missing Secret")
@@ -119,13 +120,13 @@ func ParseAuthToken(value map[string]string) (*authToken, error) {
 	if !ok {
 		return nil, fmt.Errorf("missing userid")
 	}
-	return &authToken{
+	return &AuthToken{
 		Secret: secret,
 		UserID: userID,
 	}, nil
 }
 
-func MapAuthToken(token *authToken) map[string]string {
+func MapAuthToken(token *AuthToken) map[string]string {
 	return map[string]string{"Secret": token.Secret, "userID": token.UserID}
 }
 
@@ -243,14 +244,21 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 	err = s.pgdal.DeleteGame(dbs, gameId, uid, reason, imagesPath, gamesPath,
 		deletedImagesPath, deletedGamesPath, frozenPacksPath)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return err
 	}
 
 	// Move game data and images (where exist)
 	// @TODO
 
+	if err := s.EmitGameDeleteEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	err = dbs.Commit()
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
@@ -276,11 +284,18 @@ func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason str
 	err = s.pgdal.RestoreGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath,
 		deletedGamesPath, frozenPacksPath)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return err
+	}
+
+	if err := s.EmitGameRestoreEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
 	}
 
 	err = dbs.Commit()
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
@@ -396,6 +411,8 @@ func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, 
 }
 
 func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int64, gameData *types.GameData) error {
+	uid := utils.UserID(ctx)
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		return dberr(err)
@@ -404,6 +421,11 @@ func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int6
 
 	err = s.pgdal.SaveGameData(dbs, gameId, date, gameData)
 	if err != nil {
+		return dberr(err)
+	}
+
+	if err := s.EmitGameSaveDataEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
@@ -484,6 +506,11 @@ func (s *SiteService) SaveTag(ctx context.Context, tag *types.Tag) error {
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+
+	if err := s.EmitTagUpdateEvent(dbs, uid, tag.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 
 	err = s.pgdal.SaveTag(dbs, tag, uid)
 	if err != nil {
@@ -858,12 +885,28 @@ func (s *SiteService) RevokeSession(ctx context.Context, uid int64, sessionID in
 	}
 	defer dbs.Rollback()
 
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
 	err = s.dal.RevokeSession(dbs, uid, sessionID)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := s.EmitAuthRevokeSessionEvent(pgdbs, uid, sessionID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -959,6 +1002,12 @@ func (s *SiteService) SoftDeleteSubmissionFile(ctx context.Context, sfid int64, 
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	sfs, err := s.dal.GetSubmissionFiles(dbs, []int64{sfid})
 	if err != nil {
@@ -977,11 +1026,20 @@ func (s *SiteService) SoftDeleteSubmissionFile(ctx context.Context, sfid int64, 
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, sid, nil, &sfid); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, authorID, uid, &sid, nil, &sfid, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1001,6 +1059,12 @@ func (s *SiteService) SoftDeleteSubmission(ctx context.Context, sid int64, delet
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -1015,11 +1079,20 @@ func (s *SiteService) SoftDeleteSubmission(ctx context.Context, sid int64, delet
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, sid, nil, nil); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, authorID, uid, &sid, nil, nil, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1039,6 +1112,12 @@ func (s *SiteService) SoftDeleteComment(ctx context.Context, cid int64, deleteRe
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	c, err := s.dal.GetCommentByID(dbs, cid)
 	if err != nil {
@@ -1057,11 +1136,20 @@ func (s *SiteService) SoftDeleteComment(ctx context.Context, cid int64, deleteRe
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionDeleteEvent(pgdbs, uid, c.SubmissionID, &cid, nil); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createDeletionNotification(dbs, c.AuthorID, uid, &c.SubmissionID, &cid, nil, deleteReason); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1082,6 +1170,13 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	}
 	defer dbs.Rollback()
 
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
+
 	discordUser, err := s.dal.GetDiscordUser(dbs, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -1098,7 +1193,12 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		CreatedAt:    s.clock.Now(),
 	}
 
-	if err := s.dal.StoreComment(dbs, c); err != nil {
+	cid, err := s.dal.StoreComment(dbs, c)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	if err := s.EmitSubmissionOverrideEvent(pgdbs, uid, c.SubmissionID, cid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
@@ -1108,6 +1208,10 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1116,7 +1220,7 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	return nil
 }
 
-func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*authToken, error) {
+func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*AuthToken, error) {
 	getServerRoles := func() (interface{}, error) {
 		return s.authBot.GetFlashpointRoles()
 	}
@@ -1158,6 +1262,13 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 		return nil, dberr(err)
 	}
 	defer dbs.Rollback()
+
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	userExists := true
 	_, err = s.dal.GetDiscordUser(dbs, discordUser.ID)
@@ -1215,6 +1326,15 @@ func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUs
 		return nil, dberr(err)
 	}
 
+	if err := s.EmitAuthLoginEvent(pgdbs, discordUser.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
@@ -1270,19 +1390,33 @@ func (s *SiteService) GenAuthToken(ctx context.Context, uid int64, scope string,
 	return MapAuthToken(authToken), nil
 }
 
-func (s *SiteService) Logout(ctx context.Context, secret string) error {
+func (s *SiteService) Logout(ctx context.Context, token *AuthToken) error {
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
-	if err := s.dal.DeleteSession(dbs, secret); err != nil {
+	if err := s.dal.DeleteSession(dbs, token.Secret); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	if err := s.EmitAuthLogoutEvent(pgdbs, token.UserID); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -1887,6 +2021,12 @@ func (s *SiteService) processReceivedResumableSubmission(ctx context.Context, ui
 		return err
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		s.SSK.SetFailed(tempName, "internal error")
+		cleanup()
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		s.SSK.SetFailed(tempName, "internal error")
@@ -2376,21 +2516,21 @@ func (s *SiteService) GetStatisticsPageData(ctx context.Context) (*types.Statist
 		return err
 	})
 
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		ffc, err = s.dal.GetTotalFlashfreezeCount(dbs)
-		return err
-	})
-
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		fffc, err = s.dal.GetTotalFlashfreezeFileCount(dbs)
-		return err
-	})
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	ffc, err = s.dal.GetTotalFlashfreezeCount(dbs)
+	//	return err
+	//})
+	//
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	fffc, err = s.dal.GetTotalFlashfreezeFileCount(dbs)
+	//	return err
+	//})
 
 	errs.Go(func() error {
 		dbs, _ := s.dal.NewSession(ectx)
@@ -2400,13 +2540,13 @@ func (s *SiteService) GetStatisticsPageData(ctx context.Context) (*types.Statist
 		return err
 	})
 
-	errs.Go(func() error {
-		dbs, _ := s.dal.NewSession(ectx)
-		defer dbs.Rollback()
-		var err error
-		tffs, err = s.dal.GetTotalFlashfreezeFilesize(dbs)
-		return err
-	})
+	//errs.Go(func() error {
+	//	dbs, _ := s.dal.NewSession(ectx)
+	//	defer dbs.Rollback()
+	//	var err error
+	//	tffs, err = s.dal.GetTotalFlashfreezeFilesize(dbs)
+	//	return err
+	//})
 
 	if err := errs.Wait(); err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -2956,6 +3096,11 @@ func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 
 	game.ArchiveState = existingGame.ArchiveState
 
+	if err := s.EmitGameSaveEvent(dbs, uid, game.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	err = s.pgdal.SaveGame(dbs, game, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -3250,6 +3395,12 @@ func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -3264,11 +3415,20 @@ func (s *SiteService) FreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionFreezeEvent(pgdbs, uid, sid, true); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createFreezeNotification(dbs, authorID, uid, sid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -3288,6 +3448,12 @@ func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	submissions, _, err := s.dal.SearchSubmissions(dbs, &types.SubmissionsFilter{SubmissionIDs: []int64{sid}})
 	if err != nil {
@@ -3302,16 +3468,24 @@ func (s *SiteService) UnfreezeSubmission(ctx context.Context, sid int64) error {
 		return dberr(err)
 	}
 
+	if err := s.EmitSubmissionFreezeEvent(pgdbs, uid, sid, false); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
 	if err := s.createUnfreezeNotification(dbs, authorID, uid, sid); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
-
 	s.announceNotification()
 
 	return nil
@@ -3333,6 +3507,11 @@ func (s *SiteService) FreezeGame(ctx context.Context, gameId string, uid int64, 
 	// Lock the database for sequential write
 	utils.MetadataMutex.Lock()
 	defer utils.MetadataMutex.Unlock()
+
+	if err := s.EmitGameFreezeEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 
 	game.ArchiveState = types.Archived
 	err = s.pgdal.SaveGame(dbs, game, uid)
@@ -3390,6 +3569,11 @@ func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64
 	// Lock the database for sequential write
 	utils.MetadataMutex.Lock()
 	defer utils.MetadataMutex.Unlock()
+
+	if err := s.EmitGameUnfreezeEvent(dbs, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 
 	game.ArchiveState = types.Available
 	err = s.pgdal.SaveGame(dbs, game, uid)
@@ -3455,12 +3639,19 @@ func (s *SiteService) NukeSessionTable(ctx context.Context) error {
 }
 
 func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, clientSecret string) error {
+	uid := utils.UserID(ctx)
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 	defer dbs.Rollback()
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
 	err = s.dal.SetClientSecret(dbs, clientID, clientSecret)
 	if err != nil {
@@ -3468,10 +3659,29 @@ func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, c
 		return dberr(err)
 	}
 
+	if err := s.EmitAuthSetClientSecretEvent(pgdbs, uid, clientID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	if err := dbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
 	return nil
+}
+
+func (s *SiteService) GetActivityEvents(ctx context.Context, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error) {
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer pgdbs.Rollback()
+	return s.pgdal.GetActivityEvents(pgdbs, filter)
 }

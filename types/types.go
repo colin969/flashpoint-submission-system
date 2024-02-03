@@ -80,6 +80,7 @@ type Comment struct {
 }
 
 type SubmissionFile struct {
+	ID               int64
 	SubmitterID      int64
 	SubmissionID     int64
 	OriginalFilename string
@@ -931,4 +932,10 @@ func (as ArchiveState) String() string {
 
 type FetchGamesRequest struct {
 	GameIDs []string `json:"game_ids"`
+}
+
+type ActivityEventsFilter struct {
+	UserID int64 `schema:"uid"`
+	From   int64 `schema:"from"`
+	To     int64 `schema:"to"`
 }

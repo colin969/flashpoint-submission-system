@@ -15,9 +15,9 @@ local:
 	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml up -d validator
 
 remote:
-	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml down
+	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml down -v
 	$(shell mkdir -p ${REPACK_DIR})
-	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml up -d database postgres
+	docker-compose -p ${DB_CONTAINER_NAME}  -f dc-db.yml up -d database postgres validator
 
 rebuild-postgres:
 	docker-compose -p ${DB_CONTAINER_NAME} down

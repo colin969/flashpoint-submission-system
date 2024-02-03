@@ -503,19 +503,19 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
-	f = a.UserAuthMux(
-		a.RequestScope(a.HandleSearchFlashfreezePage, types.AuthScopeFlashfreezeReadFiles),
-		muxAny(isStaff, isTrialCurator, isInAudit))
-
-	router.Handle(
-		"/web/flashfreeze/files",
-		http.HandlerFunc(a.RequestWeb(f, false))).
-		Methods("GET")
-
-	router.Handle(
-		"/api/flashfreeze/files",
-		http.HandlerFunc(a.RequestJSON(f, false))).
-		Methods("GET")
+	//f = a.UserAuthMux(
+	//	a.RequestScope(a.HandleSearchFlashfreezePage, types.AuthScopeFlashfreezeReadFiles),
+	//	muxAny(isStaff, isTrialCurator, isInAudit))
+	//
+	//router.Handle(
+	//	"/web/flashfreeze/files",
+	//	http.HandlerFunc(a.RequestWeb(f, false))).
+	//	Methods("GET")
+	//
+	//router.Handle(
+	//	"/api/flashfreeze/files",
+	//	http.HandlerFunc(a.RequestJSON(f, false))).
+	//	Methods("GET")
 
 	////////////////////////
 
@@ -760,6 +760,22 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			muxAll(isFreezer)), false))).
 		Methods("POST")
 
+	// activity events
+
+	router.Handle(
+		"/api/activity-events",
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleGetActivityEvents, types.AuthScopeAll),
+			muxAny(isStaff)), false))).
+		Methods("GET")
+
+	router.Handle(
+		"/web/user-activity",
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleUserActivityPage, types.AuthScopeUsersRead),
+			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		Methods("GET")
+
 	// user statistics
 
 	router.Handle(
@@ -814,7 +830,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	router.Handle("/api/internal/delete-user-sessions",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleDeleteUserSessions, types.AuthScopeAll), isGod), false))).
-		Methods("POST")
+		Methods("POST") // TODO activity event
 
 	router.Handle("/api/internal/send-reminders-about-requested-changes",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleSendRemindersAboutRequestedChanges, types.AuthScopeAll), isGod), false))).

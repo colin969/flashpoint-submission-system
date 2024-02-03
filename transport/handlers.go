@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"math/rand"
 	"net/http"
@@ -921,6 +922,7 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	gameId := params[constants.ResourceKeyGameID]
 	revisionDate := ""
@@ -936,7 +938,7 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	const maxUploadSize = 15 << 20 // 10 MB
+	const maxUploadSize = 15 << 20 // 15 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
@@ -997,6 +999,10 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := a.Service.EmitGameLogoUpdateEvent(ctx, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
+	}
+
 	url := fmt.Sprintf("%s/Logos/%s/%s/%s.png",
 		a.Conf.ImagesCdn, gameId[:2], gameId[2:4], gameId)
 	// Clear the image microservice cached file
@@ -1014,11 +1020,11 @@ func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	// File saved successfully
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("File uploaded and saved successfully"))
-
 }
 
 func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	uid := utils.UserID(ctx)
 	params := mux.Vars(r)
 	gameId := params[constants.ResourceKeyGameID]
 	revisionDate := ""
@@ -1034,7 +1040,7 @@ func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	const maxUploadSize = 15 << 20 // 10 MB
+	const maxUploadSize = 15 << 20 // 15 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		http.Error(w, "The uploaded file is too big. Please choose a file that is less than 15MB in size", http.StatusBadRequest)
@@ -1093,6 +1099,10 @@ func (a *App) HandleGameScreenshot(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(dst, file); err != nil {
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
+	}
+
+	if err := a.Service.EmitGameScreenshotUpdateEvent(ctx, uid, gameId); err != nil {
+		utils.LogCtx(ctx).Error(err)
 	}
 
 	url := fmt.Sprintf("%s/Screenshots/%s/%s/%s.png",
@@ -1902,4 +1912,43 @@ func (a *App) HandleNukeSessionTable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeResponse(ctx, w, presp("nuked the session table", http.StatusOK), http.StatusOK)
+}
+
+func (a *App) HandleGetActivityEvents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	filter := &types.ActivityEventsFilter{}
+
+	if err := a.decoder.Decode(filter, r.URL.Query()); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
+		return
+	}
+
+	events, err := a.Service.GetActivityEvents(ctx, filter)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+
+	data := struct {
+		Events []*activityevents.ActivityEvent `json:"events"`
+	}{
+		events,
+	}
+
+	writeResponse(ctx, w, data, http.StatusOK)
+}
+
+func (a *App) HandleUserActivityPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	pageData, err := a.Service.GetBasePageData(ctx)
+	if err != nil {
+		utils.UnsetCookie(w, utils.Cookies.Login)
+		http.Redirect(w, r, "/web", http.StatusFound)
+	}
+
+	a.RenderTemplates(ctx, w, r, pageData, "templates/user-activity.gohtml")
 }
