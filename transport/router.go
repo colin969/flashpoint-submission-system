@@ -800,6 +800,15 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
 		Methods("GET")
 
+	// recommendation engine
+
+	router.Handle(
+		fmt.Sprintf("/api/recommendation/{%s}", constants.ResourceKeyRecommendationOp),
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleRecommendationEngine, types.AuthScopeAll),
+			muxAll(isStaff)), false))).
+		Methods("POST")
+
 	////////////////////////
 
 	// god tools

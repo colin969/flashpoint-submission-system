@@ -80,6 +80,7 @@ const (
 	ResourceKeyHash                  = "hash"
 	ResourceKeySessionID             = "session-id"
 	ResourceKeyClientAppID           = "client-app-id"
+	ResourceKeyRecommendationOp      = "recommendation-op"
 )
 
 const (

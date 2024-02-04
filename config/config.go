@@ -54,6 +54,7 @@ type Config struct {
 	DeletedImagesDir              string
 	FlashpointSourceOnlyMode      bool
 	FlashpointSourceOnlyAdminMode bool
+	RecommendationEngineURL       string
 }
 
 func EnvString(name string) string {
@@ -144,5 +145,6 @@ func GetConfig(l *logrus.Entry) *Config {
 		DeletedImagesDir:              EnvString("DELETED_IMAGES_PATH"),
 		FlashpointSourceOnlyMode:      EnvBool("FLASHPOINT_SOURCE_ONLY_MODE"),
 		FlashpointSourceOnlyAdminMode: EnvBool("FLASHPOINT_SOURCE_ONLY_ADMIN_MODE"),
+		RecommendationEngineURL:       EnvString("RECOMMENDATION_ENGINE_URL"),
 	}
 }

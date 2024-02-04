@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -1951,4 +1952,44 @@ func (a *App) HandleUserActivityPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.RenderTemplates(ctx, w, r, pageData, "templates/user-activity.gohtml")
+}
+
+// HandleRecommendationEngine recreates the POST request with the original body and sends back the response
+func (a *App) HandleRecommendationEngine(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	recommendationOperation := params[constants.ResourceKeyRecommendationOp] // similar-games or user-recommendations
+
+	originalBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+	r.Body.Close()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s", a.Conf.RecommendationEngineURL, recommendationOperation), bytes.NewBuffer(originalBody))
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	result, err := io.ReadAll(resp.Body)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, result, http.StatusOK)
 }
