@@ -1990,6 +1990,19 @@ func (a *App) HandleRecommendationEngine(w http.ResponseWriter, r *http.Request)
 		writeError(ctx, w, err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(result)
+}
 
-	writeResponse(ctx, w, result, http.StatusOK)
+func (a *App) HandleRecommendationPlaygroundPage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	pageData, err := a.Service.GetBasePageData(ctx)
+	if err != nil {
+		utils.UnsetCookie(w, utils.Cookies.Login)
+		http.Redirect(w, r, "/web", http.StatusFound)
+	}
+
+	a.RenderTemplates(ctx, w, r, pageData, "templates/recommendation-playground.gohtml")
 }

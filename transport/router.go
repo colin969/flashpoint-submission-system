@@ -772,8 +772,8 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		"/web/user-activity",
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.RequestScope(a.HandleUserActivityPage, types.AuthScopeUsersRead),
-			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+			a.RequestScope(a.HandleUserActivityPage, types.AuthScopeAll),
+			muxAny(isStaff)), false))).
 		Methods("GET")
 
 	// user statistics
@@ -809,6 +809,13 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 			a.RequestScope(a.HandleRecommendationEngine, types.AuthScopeAll), // TODO might want to add auth scope for recommendation engine
 			muxAll(isStaff)), false))).
 		Methods("POST")
+
+	router.Handle(
+		"/web/recommendation-playground",
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleRecommendationPlaygroundPage, types.AuthScopeAll),
+			muxAny(isStaff)), false))).
+		Methods("GET")
 
 	////////////////////////
 
