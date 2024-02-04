@@ -1,13 +1,167 @@
 {{define "main"}}
     <div class="content">
-        <h1>User activity</h1>
+        <div class="content">
+            <h1>User activity</h1>
 
-        This is a WIP page. Feel free to write a little javascript UI for the activity events if you wish so. <br>
-        The endpoint to fetch data is `/api/activity-events?uid=1&from=2&to=3` where uid is discord user ID, and from and to are unix epochs in seconds. <br>
-        This will return a list of events for the given user within the given time range, the time range is inclusive-exclusive [). <br>
-        <br>
-        <a href="/api/activity-events?uid=221956378627932160&from=0&to=1706893330">Click Here</a> to get a sample response of Dri0m's activity.
-        <br>
-        <a href="/api/users">Click Here</a> to get a list of users which is handy if you want to write a UI for this or just investigate manually.
+            <form class="pure-form" onsubmit="return false;">
+                <!-- User input field -->
+                <input type="text" id="userInput" placeholder="Enter UserID or Username" list="userList">
+                <datalist id="userList">
+                    <!-- User options will be added here dynamically -->
+                </datalist>
+
+                <br><br>
+
+                <!-- Date and Time Range Inputs -->
+                <input type="date" id="startDate" name="startDate">
+                <input type="time" id="startTime" name="startTime" value="00:00">
+
+                <br>
+                <input type="date" id="endDate" name="endDate">
+                <input type="time" id="endTime" name="endTime" value="00:00">
+
+                <br>
+                <br>
+
+                <button id="lastHour" class="pure-button pure-button-primary">Last Hour</button>
+                <button id="last24Hours" class="pure-button pure-button-primary">Last 24 Hours</button>
+                <button id="lastWeek" class="pure-button pure-button-primary">Last Week</button>
+
+                <br><br>
+
+
+                <button id="fetchEvents" class="pure-button pure-button-primary">Get Events</button>
+            </form>
+
+            <!-- Table for displaying events -->
+            <div id="table-wrapper">
+                <i>tip: use shift+mousewheel to scroll horizontally</i>
+                <div id="table-scroll">
+                    <table id="eventsTable" class="pure-table pure-table-striped submissions-table">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Area</th>
+                            <th>Operation</th>
+                            <th>Data</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Event rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const eventsTable = document.getElementById('eventsTable').getElementsByTagName('tbody')[0];
+            const fetchEventsBtn = document.getElementById('fetchEvents');
+            const userInput = document.getElementById('userInput');
+            const userList = document.getElementById('userList'); // Reference to the datalist
+            let users = [];
+
+            // Fetch users and populate datalist
+            fetch('/api/users')
+                .then(response => response.json())
+                .then(data => {
+                    users = data.users;
+                    populateUserList(users);
+                });
+
+            // Populate datalist with usernames
+            function populateUserList(users) {
+                users.forEach(user => {
+                    let option = document.createElement('option');
+                    option.value = user.username; // Use username for the hinting
+                    userList.appendChild(option);
+                });
+            }
+
+            // Default to last 24 hours
+            setDateTimeRange(-24 * 60 * 60);
+
+            // Button event listeners
+            document.getElementById('lastHour').addEventListener('click', function () {
+                setDateTimeRange(-60 * 60); // Last hour
+            });
+
+            document.getElementById('last24Hours').addEventListener('click', function () {
+                setDateTimeRange(-24 * 60 * 60); // Last 24 hours
+            });
+
+            document.getElementById('lastWeek').addEventListener('click', function () {
+                setDateTimeRange(-7 * 24 * 60 * 60); // Last week
+            });
+
+            function setDateTimeRange(seconds) {
+                const now = new Date();
+                const past = new Date(now.getTime() + seconds * 1000);
+
+                document.getElementById('endDate').value = now.toISOString().split('T')[0];
+                document.getElementById('endTime').value = now.toISOString().split('T')[1].substring(0, 5);
+
+                document.getElementById('startDate').value = past.toISOString().split('T')[0];
+                document.getElementById('startTime').value = past.toISOString().split('T')[1].substring(0, 5);
+            }
+
+            // Handle button click
+            fetchEventsBtn.addEventListener('click', function () {
+                const userId = findUserId(userInput.value);
+                if (userId) {
+                    const startDate = document.getElementById('startDate').value;
+                    const startTime = document.getElementById('startTime').value;
+                    const endDate = document.getElementById('endDate').value;
+                    const endTime = document.getElementById('endTime').value;
+
+                    const fromTime = new Date(`${startDate}T${startTime}`).getTime() / 1000;
+                    const toTime = new Date(`${endDate}T${endTime}`).getTime() / 1000;
+
+                    fetch(`/api/activity-events?uid=${userId}&from=${fromTime}&to=${toTime}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displayEvents(data.events);
+                        });
+                } else {
+                    alert('User not found');
+                }
+            });
+
+
+            function findUserId(input) {
+                // Find user by ID or username
+                const user = users.find(u => u.id === input || u.username.toLowerCase() === input.toLowerCase());
+                return user ? user.id : null;
+            }
+
+            function displayEvents(events) {
+                // Clear existing rows
+                eventsTable.innerHTML = '';
+
+                // Add new rows
+                events.forEach(event => {
+                    let row = eventsTable.insertRow();
+
+                    // Time column
+                    let timeCell = row.insertCell();
+                    timeCell.textContent = event.created_at;
+
+                    // Area column
+                    let areaCell = row.insertCell();
+                    areaCell.textContent = event.area;
+
+                    // Operation column
+                    let operationCell = row.insertCell();
+                    operationCell.textContent = event.operation;
+
+                    // Data column with filtered JSON
+                    let dataCell = row.insertCell();
+                    dataCell.textContent = JSON.stringify(event.data, (key, value) => value === null ? undefined : value);
+                });
+            }
+        });
+    </script>
 {{end}}
