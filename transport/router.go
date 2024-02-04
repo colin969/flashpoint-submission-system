@@ -793,6 +793,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("GET")
 
 	// upload status
+
 	router.Handle(
 		fmt.Sprintf("/api/upload-status/{%s}", constants.ResourceKeyTempName),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
@@ -805,7 +806,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	router.Handle(
 		fmt.Sprintf("/api/recommendation/{%s}", constants.ResourceKeyRecommendationOp),
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
-			a.RequestScope(a.HandleRecommendationEngine, types.AuthScopeAll),
+			a.RequestScope(a.HandleRecommendationEngine, types.AuthScopeAll), // TODO might want to add auth scope for recommendation engine
 			muxAll(isStaff)), false))).
 		Methods("POST")
 
