@@ -304,3 +304,17 @@ func BuildAuthNewTokenEvent(userID int64, clientID string) *ActivityEvent {
 		},
 	}
 }
+
+func BuildAuthDeleteUserSessionsEvent(userID int64, targetID int64) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    userID,
+		CreatedAt: time.Now(),
+		Area:      aea.Auth(),
+		Operation: aeo.Delete(),
+		Data: &ActivityEventDataAuth{
+			Operation:    "delete-user-sessions",
+			TargetUserID: &targetID,
+		},
+	}
+}

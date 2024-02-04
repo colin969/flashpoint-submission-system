@@ -2397,16 +2397,34 @@ func (s *SiteService) IndexUnindexedFlashfreezeItems(l *logrus.Entry) {
 	}
 }
 
-func (s *SiteService) DeleteUserSessions(ctx context.Context, uid int64) (int64, error) {
+func (s *SiteService) DeleteUserSessions(ctx context.Context, targetID int64) (int64, error) {
+	uid := utils.UserID(ctx)
+
 	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return 0, dberr(err)
 	}
 	defer dbs.Rollback()
-
-	count, err := s.dal.DeleteUserSessions(dbs, uid)
+	pgdbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return 0, dberr(err)
+	}
+	defer pgdbs.Rollback()
+
+	count, err := s.dal.DeleteUserSessions(dbs, targetID)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return 0, dberr(err)
+	}
+
+	if err := s.EmitAuthDeleteUserSessionsEvent(pgdbs, uid, targetID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return 0, dberr(err)
+	}
+
+	if err := pgdbs.Commit(); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return 0, dberr(err)
 	}

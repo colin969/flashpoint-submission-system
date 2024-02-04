@@ -108,11 +108,15 @@ func (s *SiteService) EmitAuthLoginEvent(pgdbs database.PGDBSession, userID int6
 func (s *SiteService) EmitAuthLogoutEvent(pgdbs database.PGDBSession, userID string) error {
 	ctx := pgdbs.Ctx()
 
-	uid, _ := strconv.ParseInt(userID, 10, 64)
+	uid, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return err
+	}
 
 	event := activityevents.BuildAuthLogoutEvent(uid)
 
-	err := s.pgdal.CreateActivityEvent(pgdbs, event)
+	err = s.pgdal.CreateActivityEvent(pgdbs, event)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
@@ -321,5 +325,18 @@ func (s *SiteService) EmitAuthNewTokenEvent(ctx context.Context, userID int64, c
 		return dberr(err)
 	}
 
+	return nil
+}
+
+func (s *SiteService) EmitAuthDeleteUserSessionsEvent(pgdbs database.PGDBSession, userID, targetID int64) error {
+	ctx := pgdbs.Ctx()
+
+	event := activityevents.BuildAuthDeleteUserSessionsEvent(userID, targetID)
+
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
 	return nil
 }
