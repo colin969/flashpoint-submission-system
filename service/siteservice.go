@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -26,6 +25,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -3097,29 +3098,44 @@ func (s *SiteService) DeveloperImportDatabaseJson(ctx context.Context, data *typ
 
 func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 	uid := utils.UserID(ctx)
-
-	dbs, err := s.pgdal.NewSession(ctx)
+	dbs, err := s.dal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 	defer dbs.Rollback()
 
-	// Always use existing values for certain fields
-	existingGame, err := s.pgdal.GetGame(dbs, game.ID)
+	userRoles, err := s.dal.GetDiscordUserRoles(dbs, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
-	game.ArchiveState = existingGame.ArchiveState
+	pgdbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	defer pgdbs.Rollback()
 
-	if err := s.EmitGameSaveEvent(dbs, uid, game.ID); err != nil {
+	// Always use existing values for certain fields
+	existingGame, err := s.pgdal.GetGame(pgdbs, game.ID)
+	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}
 
-	err = s.pgdal.SaveGame(dbs, game, uid)
+	if !constants.IsDeleter(userRoles) {
+		game.Source = existingGame.Source
+	}
+	game.ArchiveState = existingGame.ArchiveState
+
+	if err := s.EmitGameSaveEvent(pgdbs, uid, game.ID); err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	err = s.pgdal.SaveGame(pgdbs, game, uid)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
