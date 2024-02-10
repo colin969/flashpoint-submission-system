@@ -18,7 +18,6 @@ import (
 	"github.com/FlashpointProject/flashpoint-submission-system/resumableuploadservice"
 	"github.com/FlashpointProject/flashpoint-submission-system/transport"
 	"github.com/FlashpointProject/flashpoint-submission-system/utils"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {

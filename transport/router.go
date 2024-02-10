@@ -825,9 +825,9 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleInternalPage, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
-	router.Handle("/api/internal/update-master-db",
-		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleUpdateMasterDB, types.AuthScopeAll), isGod), false))).
-		Methods("GET")
+	//router.Handle("/api/internal/update-master-db",
+	//	http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleUpdateMasterDB, types.AuthScopeAll), isGod), false))).
+	//	Methods("GET")
 
 	router.Handle("/api/internal/flashfreeze/ingest",
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleIngestFlashfreeze, types.AuthScopeAll), isGod), false))).

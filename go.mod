@@ -1,6 +1,6 @@
 module github.com/FlashpointProject/flashpoint-submission-system
 
-go 1.20
+go 1.22
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -18,7 +18,6 @@ require (
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/joho/godotenv v1.4.0
 	github.com/kofalt/go-memoize v0.0.0-20210721235729-46a601ff34b8
-	github.com/mattn/go-sqlite3 v1.14.12
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.1

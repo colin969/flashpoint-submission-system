@@ -1,4 +1,4 @@
-FROM golang:1.20
+FROM golang:1.22 as build
 
 WORKDIR /app
 
@@ -12,4 +12,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /fpfss ./main/*.go
 
+
+FROM scratch as deploy
+COPY --from=build /fpfss /fpfss
 CMD ["/fpfss"]
