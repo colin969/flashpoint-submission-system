@@ -3244,6 +3244,7 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 	// If UUID is given, check if game exists already
 	var game *types.Game
 	var gameData *types.GameData
+	new_game := false
 	if vr.Meta.UUID != nil && submission.GameExists {
 		game, _ = s.pgdal.GetGame(dbs, *vr.Meta.UUID)
 		if game != nil {
@@ -3279,6 +3280,7 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 
 	if game == nil {
 		// New game, import all info
+		new_game = true
 		game, err = s.pgdal.AddSubmissionFromValidator(dbs, utils.UserID(ctx), vr, submission.IsFrozen)
 		if err != nil {
 			utils.LogCtx(ctx).Error(err)
@@ -3333,39 +3335,41 @@ func (s *SiteService) AddSubmissionToFlashpoint(ctx context.Context, submission 
 		return nil, err
 	}
 
-	// Copy image data to new images
-	if len(vr.Images) < 2 {
-		return nil, types.NotEnoughImages(strconv.Itoa(len(vr.Images)))
-	}
+	if new_game {
+		// Copy image data to new images
+		if len(vr.Images) < 2 {
+			return nil, types.NotEnoughImages(strconv.Itoa(len(vr.Images)))
+		}
 
-	logo := vr.Images[0]
-	logoFilePath := fmt.Sprintf(`%s/Logos/%s/%s/%s.png`, imagesDir, game.ID[0:2], game.ID[2:4], game.ID)
-	decodedLogo, err := base64.StdEncoding.DecodeString(logo.Data)
-	if err != nil {
-		return nil, err
-	}
-	err = os.MkdirAll(filepath.Dir(logoFilePath), 0777)
-	if err != nil {
-		return nil, err
-	}
-	err = os.WriteFile(logoFilePath, decodedLogo, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+		logo := vr.Images[0]
+		logoFilePath := fmt.Sprintf(`%s/Logos/%s/%s/%s.png`, imagesDir, game.ID[0:2], game.ID[2:4], game.ID)
+		decodedLogo, err := base64.StdEncoding.DecodeString(logo.Data)
+		if err != nil {
+			return nil, err
+		}
+		err = os.MkdirAll(filepath.Dir(logoFilePath), 0777)
+		if err != nil {
+			return nil, err
+		}
+		err = os.WriteFile(logoFilePath, decodedLogo, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	ss := vr.Images[1]
-	ssFilePath := fmt.Sprintf(`%s/Screenshots/%s/%s/%s.png`, imagesDir, game.ID[0:2], game.ID[2:4], game.ID)
-	decodedScreenshot, err := base64.StdEncoding.DecodeString(ss.Data)
-	if err != nil {
-		return nil, err
-	}
-	err = os.MkdirAll(filepath.Dir(ssFilePath), 0777)
-	if err != nil {
-		return nil, err
-	}
-	err = os.WriteFile(ssFilePath, decodedScreenshot, 0644)
-	if err != nil {
-		log.Fatal(err)
+		ss := vr.Images[1]
+		ssFilePath := fmt.Sprintf(`%s/Screenshots/%s/%s/%s.png`, imagesDir, game.ID[0:2], game.ID[2:4], game.ID)
+		decodedScreenshot, err := base64.StdEncoding.DecodeString(ss.Data)
+		if err != nil {
+			return nil, err
+		}
+		err = os.MkdirAll(filepath.Dir(ssFilePath), 0777)
+		if err != nil {
+			return nil, err
+		}
+		err = os.WriteFile(ssFilePath, decodedScreenshot, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	err = dbs.Commit()
