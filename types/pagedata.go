@@ -60,6 +60,7 @@ type GamePageData struct {
 	LogoUrl             string
 	ScreenshotUrl       string
 	ImagesCdn           string
+	RedirectsTo         string
 	ValidDeleteReasons  []string
 	ValidRestoreReasons []string
 }

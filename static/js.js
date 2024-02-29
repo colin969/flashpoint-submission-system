@@ -819,7 +819,7 @@ async function confirmAction(message, cb) {
     }
 }
 
-async function selectReason(message, options, cb) {
+async function selectReason(message, showRedirect, options, cb) {
     const createElem = (type, classNames, text) => {
         const elem = document.createElement(type);
         classNames.forEach((className) => elem.classList.add(className));
@@ -839,6 +839,13 @@ async function selectReason(message, options, cb) {
     });
     messageBox.appendChild(dropdown);
 
+    const redirectID = createElem('input', []);
+    if (showRedirect) {
+        const redirectLabel = createElem('div', [], 'Optional - Game ID to redirect to');
+        messageBox.append(redirectLabel);
+        messageBox.append(redirectID);
+    }
+
     const confirmButton = createElem('button', ['pure-button', 'pure-button-primary', 'button-approve'], 'Confirm');
     const cancelButton = createElem('button', ['pure-button', 'pure-button-primary', 'button-delete'], 'Cancel');
     const buttonBox = createElem('div', ['message-box-buttons']);
@@ -854,7 +861,7 @@ async function selectReason(message, options, cb) {
         confirmButton.addEventListener('click', () => resolve(dropdown.value));
         cancelButton.addEventListener('click', reject);
     })
-        .then((reason) => cb(reason))
+        .then((reason) => cb(reason, showRedirect ? [redirectID.value]: []))
         .catch(() => { /** ignore */ })
         .finally(() => {
             document.body.removeChild(overlay);

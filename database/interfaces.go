@@ -64,6 +64,13 @@ type PGDAL interface {
 	UpdateTagsFromTagsList(dbs PGDBSession, tagsList []types.Tag) error
 	ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Game, patch *types.GameContentPatch, addApps []*types.CurationAdditionalApp) error
 
+	GetGameRedirectTo(dbs PGDBSession, gameId string) (string, error)
+	GetGameRedirects(dbs PGDBSession) ([]*types.GameRedirect, error)
+	AddGameRedirect(dbs PGDBSession, srcId string, destId string) error
+	RemoveGameRedirectsTo(dbs PGDBSession, srcId string) error
+	RemoveGameRedirectsFrom(dbs PGDBSession, srcId string) error
+	UpdateGameRedirects(dbs PGDBSession, srcId string, destId string) error
+
 	CreateActivityEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error
 	GetActivityEvents(dbs PGDBSession, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error)
 }

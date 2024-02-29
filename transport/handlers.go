@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 	"io"
 	"math/rand"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/FlashpointProject/flashpoint-submission-system/activityevents"
 
 	"github.com/kofalt/go-memoize"
 
@@ -847,6 +848,7 @@ func (a *App) HandleDeleteGame(w http.ResponseWriter, r *http.Request) {
 	gameId := params[constants.ResourceKeyGameID]
 	query := r.URL.Query()
 	reason := query.Get("reason")
+	destId := query.Get("destId")
 	validReasons := constants.GetValidDeleteReasons()
 
 	if !isElementExist(validReasons, reason) {
@@ -855,11 +857,20 @@ func (a *App) HandleDeleteGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.Service.DeleteGame(ctx, gameId, reason, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir,
+	if reason == "Duplicate" {
+		if destId == "" {
+			writeError(ctx, w, perr("Redirect ID must be provided when deleting a duplicate game", http.StatusBadRequest))
+			return
+		} else {
+			reason += " - Redirect to " + destId
+		}
+	}
+
+	err := a.Service.DeleteGame(ctx, gameId, reason, destId, a.Conf.ImagesDir, a.Conf.DataPacksDir, a.Conf.DeletedImagesDir,
 		a.Conf.DeletedDataPacksDir, a.Conf.FrozenPacksDir)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
+		writeError(ctx, w, perr("Error deleting game - "+err.Error(), http.StatusInternalServerError))
 		return
 	}
 
@@ -884,7 +895,7 @@ func (a *App) HandleRestoreGame(w http.ResponseWriter, r *http.Request) {
 		a.Conf.DeletedDataPacksDir, a.Conf.FrozenPacksDir)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		writeError(ctx, w, perr("failed to decode query params", http.StatusInternalServerError))
+		writeError(ctx, w, perr("Error restoring game "+err.Error(), http.StatusInternalServerError))
 		return
 	}
 
@@ -1162,6 +1173,18 @@ func (a *App) HandleUnfreezeGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeResponse(ctx, w, gameId, http.StatusOK)
+}
+
+func (a *App) HandleGameRedirects(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	data, err := a.Service.GetGameRedirects(ctx)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, data, http.StatusOK)
 }
 
 func (a *App) HandleSubmissionsPage(w http.ResponseWriter, r *http.Request) {

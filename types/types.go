@@ -854,6 +854,12 @@ type IndexMatchData struct {
 	Date   int64  `json:"date_added"`
 }
 
+type GameRedirect struct {
+	SourceId  string    `json:"source_id"`
+	DestId    string    `json:"id"`
+	DateAdded time.Time `json:"date_added"`
+}
+
 type NotContentPatch struct {
 }
 

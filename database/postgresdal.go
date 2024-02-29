@@ -1415,6 +1415,96 @@ func (d *postgresDAL) ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Gam
 	return nil
 }
 
+func (d *postgresDAL) GetGameRedirectTo(dbs PGDBSession, gameId string) (string, error) {
+	dest := ""
+	err := dbs.Tx().QueryRow(dbs.Ctx(), "SELECT id FROM game_redirect WHERE source_id = $1 LIMIT 1", gameId).Scan(&dest)
+	if err != nil && err != pgx.ErrNoRows {
+		return "", err
+	}
+	return dest, nil
+}
+
+func (d *postgresDAL) GetGameRedirects(dbs PGDBSession) ([]*types.GameRedirect, error) {
+	redirects := make([]*types.GameRedirect, 0)
+
+	rows, err := dbs.Tx().Query(dbs.Ctx(), "SELECT id, source_id, date_added FROM game_redirect")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		r := types.GameRedirect{}
+		err = rows.Scan(&r.DestId, &r.SourceId, &r.DateAdded)
+		if err != nil {
+			return nil, err
+		}
+		redirects = append(redirects, &r)
+	}
+
+	return redirects, nil
+}
+
+func (d *postgresDAL) AddGameRedirect(dbs PGDBSession, srcId string, destId string) error {
+	// Validate dest id first
+	game, err := d.GetGame(dbs, destId)
+
+	if err != nil {
+		return err
+	}
+	if game == nil {
+		return fmt.Errorf("Destination game not found")
+	}
+	if game.Deleted {
+		return fmt.Errorf("Destination game is deleted")
+	}
+
+	_, err = dbs.Tx().Exec(dbs.Ctx(), "INSERT INTO game_redirect (id, source_id, date_added) VALUES ($1, $2, CURRENT_TIMESTAMP)", destId, srcId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDAL) RemoveGameRedirectsTo(dbs PGDBSession, deletedId string) error {
+	_, err := dbs.Tx().Exec(dbs.Ctx(), `DELETE FROM game_redirect WHERE id = $1`, deletedId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDAL) RemoveGameRedirectsFrom(dbs PGDBSession, deletedId string) error {
+	_, err := dbs.Tx().Exec(dbs.Ctx(), `DELETE FROM game_redirect WHERE source_id = $1`, deletedId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDAL) UpdateGameRedirects(dbs PGDBSession, srcId string, destId string) error {
+	// Validate dest id first
+	game, err := d.GetGame(dbs, destId)
+	if err != nil {
+		return err
+	}
+	if game == nil {
+		return fmt.Errorf("Destination game not found")
+	}
+	if game.Deleted {
+		return fmt.Errorf("Destination game is deleted")
+	}
+
+	_, err = dbs.Tx().Exec(dbs.Ctx(), `UPDATE game_redirect SET id = $1 WHERE id = $2`, destId, srcId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *postgresDAL) IndexerGetNext(ctx context.Context) (*types.GameData, error) {
 	var gameData types.GameData
 	err := d.db.QueryRow(ctx, `SELECT id, game_id, date_added

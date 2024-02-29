@@ -226,7 +226,7 @@ func (s *SiteService) GetBasePageData(ctx context.Context) (*types.BasePageData,
 	return bpd, nil
 }
 
-func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason string, imagesPath string, gamesPath string,
+func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason string, destId string, imagesPath string, gamesPath string,
 	deletedImagesPath string, deletedGamesPath string, frozenPacksPath string) error {
 	// Lock the database for sequential write
 	utils.MetadataMutex.Lock()
@@ -241,7 +241,7 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 
 	uid := utils.UserID(ctx)
 
-	// Soft delete database entry
+	// Soft delete database entry + move files
 	err = s.pgdal.DeleteGame(dbs, gameId, uid, reason, imagesPath, gamesPath,
 		deletedImagesPath, deletedGamesPath, frozenPacksPath)
 	if err != nil {
@@ -249,8 +249,29 @@ func (s *SiteService) DeleteGame(ctx context.Context, gameId string, reason stri
 		return err
 	}
 
-	// Move game data and images (where exist)
-	// @TODO
+	// Add redirect if given
+	if len(destId) > 0 {
+		err = s.pgdal.AddGameRedirect(dbs, gameId, destId)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return err
+		}
+	}
+
+	// Update existing redirects
+	if len(destId) > 0 {
+		err = s.pgdal.UpdateGameRedirects(dbs, gameId, destId)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return err
+		}
+	} else {
+		err = s.pgdal.RemoveGameRedirectsTo(dbs, gameId)
+		if err != nil {
+			utils.LogCtx(ctx).Error(err)
+			return err
+		}
+	}
 
 	if err := s.EmitGameDeleteEvent(dbs, uid, gameId); err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -284,6 +305,13 @@ func (s *SiteService) RestoreGame(ctx context.Context, gameId string, reason str
 	// Restore database entry
 	err = s.pgdal.RestoreGame(dbs, gameId, uid, reason, imagesPath, gamesPath, deletedImagesPath,
 		deletedGamesPath, frozenPacksPath)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return err
+	}
+
+	// Remove existing redirects
+	err = s.pgdal.RemoveGameRedirectsFrom(dbs, gameId)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return err
@@ -345,6 +373,11 @@ func (s *SiteService) GetGamePageData(ctx context.Context, gameId string, imageC
 		utils.LogCtx(ctx).Error(err)
 		return nil, perr("failed to populate revision info with user details", http.StatusNotFound)
 	}
+	redirectsTo, err := s.pgdal.GetGameRedirectTo(dbs, gameId)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, perr("failed to search game redirect data", http.StatusNotFound)
+	}
 
 	// Desc sort revisions
 	sort.Slice(revisions, func(i, j int) bool {
@@ -373,6 +406,7 @@ func (s *SiteService) GetGamePageData(ctx context.Context, gameId string, imageC
 		GameAvatarURL:       utils.FormatAvatarURL(user.ID, user.Avatar),
 		GameAuthorID:        user.ID,
 		BasePageData:        *bpd,
+		RedirectsTo:         redirectsTo,
 		ValidDeleteReasons:  validDeleteReasons,
 		ValidRestoreReasons: validRestoreReasons,
 	}
@@ -3618,6 +3652,21 @@ func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64
 	}
 
 	return err
+}
+
+func (s *SiteService) GetGameRedirects(ctx context.Context) ([]*types.GameRedirect, error) {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
+	redirects, err := s.pgdal.GetGameRedirects(dbs)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	return redirects, nil
 }
 
 // NukeSessionTable nukes the session table

@@ -6,6 +6,9 @@
 
         <h3>Game {{.Game.ID}}</h3>
         {{if .Game.Deleted}}<h3>DELETED</h3>{{end}}
+        {{if eq .RedirectsTo ""}}{{else}}
+        <div><b>Redirects To - <a href="/web/game/{{.RedirectsTo}}">{{.RedirectsTo}}</a></b></div><br>
+        {{end}}
 
         <div class="game-buttons">
             <a class="pure-button pure-button-primary"
@@ -14,7 +17,7 @@
             </a>
         {{if isDeleter .UserRoles}}
             {{ if .Game.Deleted }}
-                <a class="pure-button pure-button-primary button-approve" onclick="selectReason('Restore Game?', {{.ValidRestoreReasons}}, (reason) => {
+                <a class="pure-button pure-button-primary button-approve" onclick="selectReason('Restore Game?', false, {{.ValidRestoreReasons}}, (reason) => {
                     fetch(`/api/game/` + {{.Game.ID}} + `/restore?reason=${reason}`)
                         .then(() => {
                             window.location.reload()
@@ -26,10 +29,19 @@
                     Restore
                 </a>
             {{else}}
-                <a class="pure-button pure-button-primary button-delete" onclick="selectReason('Delete Game?', {{.ValidDeleteReasons}}, (reason) => {
-                    fetch(`/api/game/` + {{.Game.ID}} + `?reason=${reason}`, { method: 'DELETE' })
-                        .then(() => {
-                            window.location.reload()
+                <a class="pure-button pure-button-primary button-delete" onclick="selectReason('Delete Game?', true, {{.ValidDeleteReasons}}, (reason, fields) => {
+                    const destId = fields[0];
+                    if (!destId && reason === 'Duplicate') {
+                        alert('You must include a Game ID to redirect to when marking as duplicate');
+                        return;
+                    }
+                    fetch(`/api/game/` + {{.Game.ID}} + `?reason=${reason}&destId=${destId}`, { method: 'DELETE' })
+                        .then(async (res) => {
+                            if (res.ok) {
+                                window.location.reload();
+                            } else {
+                                alert(`ERROR: ${res.status} - ${await res.text()}`);
+                            }
                         })
                         .catch((err) => {
                             alert(err);
