@@ -945,3 +945,8 @@ type ActivityEventsFilter struct {
 	From   int64 `schema:"from"`
 	To     int64 `schema:"to"`
 }
+
+type AddGameRedirectRequest struct {
+	SourceId string `json:"sourceId"`
+	DestId   string `json:"destId"`
+}

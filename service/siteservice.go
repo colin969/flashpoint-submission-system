@@ -3654,7 +3654,7 @@ func (s *SiteService) UnfreezeGame(ctx context.Context, gameId string, uid int64
 	return err
 }
 
-func (s *SiteService) GetGameRedirects(ctx context.Context) ([]*types.GameRedirect, error) {
+func (s *SiteService) GetGameRedirectsPageData(ctx context.Context) (*types.GameRedirectsPageData, error) {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -3666,7 +3666,40 @@ func (s *SiteService) GetGameRedirects(ctx context.Context) ([]*types.GameRedire
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
 	}
-	return redirects, nil
+
+	bpd, err := s.GetBasePageData(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pageData := &types.GameRedirectsPageData{
+		BasePageData:  *bpd,
+		GameRedirects: redirects,
+	}
+
+	return pageData, nil
+}
+
+func (s *SiteService) AddNewGameRedirect(ctx context.Context, srcId string, destId string) error {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	err = s.pgdal.AddGameRedirect(dbs, srcId, destId)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	err = dbs.Commit()
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	return nil
 }
 
 // NukeSessionTable nukes the session table

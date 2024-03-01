@@ -1178,13 +1178,36 @@ func (a *App) HandleUnfreezeGame(w http.ResponseWriter, r *http.Request) {
 func (a *App) HandleGameRedirects(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	data, err := a.Service.GetGameRedirects(ctx)
+	pageData, err := a.Service.GetGameRedirectsPageData(ctx)
 	if err != nil {
 		writeError(ctx, w, err)
 		return
 	}
 
-	writeResponse(ctx, w, data, http.StatusOK)
+	if utils.RequestType(ctx) == constants.RequestJSON {
+		if r.Method == http.MethodGet {
+			writeResponse(ctx, w, pageData.GameRedirects, http.StatusOK)
+			return
+		} else {
+			// POST
+			var requestBody types.AddGameRedirectRequest
+			err = json.NewDecoder(r.Body).Decode(&requestBody)
+			if err != nil {
+				writeResponse(ctx, w, err, http.StatusBadRequest)
+				return
+			}
+			err := a.Service.AddNewGameRedirect(ctx, requestBody.SourceId, requestBody.DestId)
+			if err != nil {
+				writeError(ctx, w, err)
+				return
+			}
+			writeResponse(ctx, w, "success", http.StatusOK)
+			return
+		}
+	}
+
+	a.RenderTemplates(ctx, w, r, pageData,
+		"templates/game-redirects.gohtml")
 }
 
 func (a *App) HandleSubmissionsPage(w http.ResponseWriter, r *http.Request) {

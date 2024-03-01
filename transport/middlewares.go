@@ -87,6 +87,61 @@ func (a *App) AdminPassAuth(next func(http.ResponseWriter, *http.Request)) func(
 	}
 }
 
+// Loads user info into the context without any page authorization requirements
+func (a *App) OpenMux(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		secret := ""
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			checkAuth := func() *string {
+				// try bearer token
+				// split the header at the space character
+				authHeaderParts := strings.Split(authHeader, " ")
+				if len(authHeaderParts) != 2 || authHeaderParts[0] != "Bearer" {
+					return nil
+				}
+				decodedBytes, err := base64.StdEncoding.DecodeString(authHeaderParts[1])
+				if err != nil {
+					return nil
+				}
+				var tokenMap map[string]string
+				err = json.Unmarshal(decodedBytes, &tokenMap)
+				if err != nil {
+					return nil
+				}
+				token, err := service.ParseAuthToken(tokenMap)
+				if err != nil {
+					return nil
+				}
+				return &token.Secret
+			}
+			found := checkAuth()
+			if found != nil {
+				secret = *found
+			}
+		} else {
+			// try cookie
+			found, err := a.GetSecretFromCookie(ctx, r)
+			if err == nil {
+				secret = found
+			}
+		}
+
+		if secret != "" {
+			authInfo, ok, err := a.Service.GetSessionAuthInfo(ctx, secret)
+			if ok && err == nil {
+				r = r.WithContext(context.WithValue(ctx, utils.CtxKeys.UserID, authInfo.UID))
+				r = r.WithContext(context.WithValue(r.Context(), utils.CtxKeys.Scope, authInfo.Scope))
+			}
+		}
+
+		next(w, r)
+		return
+	}
+}
+
 // UserAuthMux takes many authorization middlewares and accepts if any of them does not return error
 func (a *App) UserAuthMux(next func(http.ResponseWriter, *http.Request), authorizers ...func(*http.Request, int64) (bool, error)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

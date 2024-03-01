@@ -90,6 +90,11 @@ type GameDataIndexPageData struct {
 	Index *GameDataIndex
 }
 
+type GameRedirectsPageData struct {
+	BasePageData
+	GameRedirects []*GameRedirect
+}
+
 type SubmissionsPageData struct {
 	BasePageData
 	Submissions  []*ExtendedSubmission

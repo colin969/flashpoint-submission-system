@@ -1,0 +1,58 @@
+{{define "main"}}
+    <div class="content">
+        <script>
+            function onAddNewRedirect() {
+                const s = document.getElementById("source").value;
+                const d = document.getElementById("dest").value;
+                if (s && d) {
+                    fetch("/api/game-redirects", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            sourceId: s,
+                            destId: d,
+                        })
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            window.location.reload();
+                        } else {
+                            alert(`ERROR: ${res.status} - ${res.text()}`);
+                        }
+                    })
+                    .catch(err => {
+                        alert(err);
+                    })
+                }
+            }
+        </script>
+
+        <h1>Game Redirects</h1>
+        {{if isFreezer .UserRoles}}
+            <div>  
+                <label>Source</label>
+                <input id="source" type="text"></input>
+                <label>Destination</label>
+                <input id="dest" type="text"></input>
+                <button onclick="onAddNewRedirect()">Add New Redirect</button>
+            </div>
+            <br>
+        {{end}}
+
+        <table class="pure-table pure-table-striped submissions-table monospaced">
+            <thead>
+            <tr>
+                <th>Source</th>
+                <th>Destination</th>
+            </tr>
+            </thead>
+            <tbody>
+                {{range .GameRedirects}}
+                <tr>
+                    <td>{{.SourceId}}</td>
+                    <td>{{.DestId}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+{{end}}

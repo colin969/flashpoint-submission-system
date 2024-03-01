@@ -77,6 +77,7 @@ const (
 	AuthScopeGameRead             = "game:read"
 	AuthScopeGameEdit             = "game:edit"
 	AuthScopeHashCheck            = "hash-check"
+	AuthScopeRedirectEdit         = "redirect:edit"
 )
 
 type ClientApplication struct {

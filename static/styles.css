@@ -764,3 +764,8 @@ video {
 .session-field-name {
     font-weight: bold;
 }
+
+.monospaced {
+    font-family: monospace;
+    font-size: 1.25em;
+}

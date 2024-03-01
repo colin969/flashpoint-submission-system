@@ -1445,7 +1445,16 @@ func (d *postgresDAL) GetGameRedirects(dbs PGDBSession) ([]*types.GameRedirect, 
 }
 
 func (d *postgresDAL) AddGameRedirect(dbs PGDBSession, srcId string, destId string) error {
-	// Validate dest id first
+	// Validate source id is not a live game
+	srcGame, err := d.GetGame(dbs, srcId)
+	if err != nil && err != pgx.ErrNoRows {
+		return err
+	}
+	if srcGame != nil && !srcGame.Deleted {
+		return fmt.Errorf("Source game is a live game")
+	}
+
+	// Validate dest id is a live game
 	game, err := d.GetGame(dbs, destId)
 
 	if err != nil {

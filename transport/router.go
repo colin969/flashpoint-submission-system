@@ -435,10 +435,26 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 
 	////////////////////////
 
+	f = a.OpenMux(a.HandleGameRedirects)
+
+	router.Handle(
+		"/web/game-redirects",
+		http.HandlerFunc(a.RequestWeb(f, true))).
+		Methods("GET")
+
 	router.Handle(
 		"/api/game-redirects",
-		http.HandlerFunc(a.RequestJSON(a.HandleGameRedirects, true))).
+		http.HandlerFunc(a.RequestJSON(f, true))).
 		Methods("GET")
+
+	f = a.UserAuthMux(
+		a.RequestScope(a.HandleGameRedirects, types.AuthScopeRedirectEdit),
+		muxAny(isFreezer))
+
+	router.Handle(
+		"/api/game-redirects",
+		http.HandlerFunc(a.RequestJSON(f, true))).
+		Methods("POST")
 
 	////////////////////////
 
