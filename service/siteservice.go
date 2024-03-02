@@ -3681,6 +3681,8 @@ func (s *SiteService) GetGameRedirectsPageData(ctx context.Context) (*types.Game
 }
 
 func (s *SiteService) AddNewGameRedirect(ctx context.Context, srcId string, destId string) error {
+	uid := utils.UserID(ctx)
+
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -3689,6 +3691,11 @@ func (s *SiteService) AddNewGameRedirect(ctx context.Context, srcId string, dest
 
 	err = s.pgdal.AddGameRedirect(dbs, srcId, destId)
 	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+
+	if err := s.EmitGameRedirectEvent(dbs, uid, srcId, destId); err != nil {
 		utils.LogCtx(ctx).Error(err)
 		return dberr(err)
 	}

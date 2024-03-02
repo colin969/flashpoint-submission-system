@@ -340,3 +340,15 @@ func (s *SiteService) EmitAuthDeleteUserSessionsEvent(pgdbs database.PGDBSession
 	}
 	return nil
 }
+
+func (s *SiteService) EmitGameRedirectEvent(pgdbs database.PGDBSession, userID int64, fromGameUUID, toGameUUID string) error {
+	ctx := pgdbs.Ctx()
+	event := activityevents.BuildGameRedirectEvent(userID, fromGameUUID, toGameUUID)
+
+	err := s.pgdal.CreateActivityEvent(pgdbs, event)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return dberr(err)
+	}
+	return nil
+}

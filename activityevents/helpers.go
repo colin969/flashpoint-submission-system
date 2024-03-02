@@ -318,3 +318,18 @@ func BuildAuthDeleteUserSessionsEvent(userID int64, targetID int64) *ActivityEve
 		},
 	}
 }
+
+func BuildGameRedirectEvent(userID int64, fromGameUUID, toGameUUID string) *ActivityEvent {
+	return &ActivityEvent{
+		ID:        -1,
+		UserID:    userID,
+		CreatedAt: time.Now(),
+		Area:      aea.Game(),
+		Operation: aeo.Create(),
+		Data: &ActivityEventDataGame{
+			GameUUID:          fromGameUUID,
+			Operation:         "redirect",
+			SecondaryGameUUID: &toGameUUID,
+		},
+	}
+}
