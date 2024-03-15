@@ -11,6 +11,7 @@ import (
 )
 
 type PGDAL interface {
+	Stat() *PostgresStats
 	NewSession(ctx context.Context) (PGDBSession, error)
 
 	CountSinceDate(dbs PGDBSession, modifiedAfter *string) (int, error)
@@ -179,4 +180,25 @@ type PGDBSession interface {
 	Rollback() error
 	Tx() pgx.Tx
 	Ctx() context.Context
+}
+
+type PostgresStats struct {
+	AcquireCount            int64           `json:"AcquireCount"`
+	CancelledAcquireCount   int64           `json:"CancelledAcquireCount"`
+	EmptyAcquireCount       int64           `json:"EmptyAcquireCount"`
+	MaxLifetimeDestroyCount int64           `json:"MaxLifetimeDestroyCount"`
+	MaxIdleDestroyCount     int64           `json:"MaxIdleDestroyCount"`
+	AcquiredConns           int32           `json:"AcquiredConns"`
+	ConstructingConns       int32           `json:"ConstructingConns"`
+	IdleConns               int32           `json:"IdleConns"`
+	TotalConns              int32           `json:"TotalConns"`
+	Config                  *PostgresConfig `json:"config"`
+}
+
+type PostgresConfig struct {
+	MaxConns          int32         `json:"MaxConns"`
+	MinConns          int32         `json:"MinConns"`
+	MaxConnLifetime   time.Duration `json:"MaxConnLifetime"`
+	MaxConnIdleTime   time.Duration `json:"MaxConnIdleTime"`
+	HealthCheckPeriod time.Duration `json:"HealthCheckPeriod"`
 }

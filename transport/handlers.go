@@ -1960,6 +1960,14 @@ func (a *App) HandleNukeSessionTable(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, presp("nuked the session table", http.StatusOK), http.StatusOK)
 }
 
+func (a *App) HandleStat(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	stat := a.Service.Stat()
+
+	writeResponse(ctx, w, map[string]interface{}{"postgres": stat}, http.StatusOK)
+}
+
 func (a *App) HandleGetActivityEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

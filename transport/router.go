@@ -880,6 +880,10 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestWeb(a.UserAuthMux(a.RequestScope(a.HandleNukeSessionTable, types.AuthScopeAll), isGod), false))).
 		Methods("GET")
 
+	router.Handle("/api/stat",
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.RequestScope(a.HandleStat, types.AuthScopeAll), isGod), false))).
+		Methods("GET")
+
 	err := srv.ListenAndServe()
 	if err != nil {
 		l.Fatal(err)

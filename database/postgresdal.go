@@ -59,6 +59,29 @@ type PostgresSession struct {
 	transaction pgx.Tx
 }
 
+func (d *postgresDAL) Stat() *PostgresStats {
+	stat := d.db.Stat()
+	config := d.db.Config()
+	return &PostgresStats{
+		AcquireCount:            stat.AcquireCount(),
+		CancelledAcquireCount:   stat.CanceledAcquireCount(),
+		EmptyAcquireCount:       stat.EmptyAcquireCount(),
+		MaxLifetimeDestroyCount: stat.MaxLifetimeDestroyCount(),
+		MaxIdleDestroyCount:     stat.MaxIdleDestroyCount(),
+		AcquiredConns:           stat.AcquiredConns(),
+		ConstructingConns:       stat.ConstructingConns(),
+		IdleConns:               stat.IdleConns(),
+		TotalConns:              stat.TotalConns(),
+		Config: &PostgresConfig{
+			MaxConns:          config.MaxConns,
+			MinConns:          config.MinConns,
+			MaxConnLifetime:   config.MaxConnLifetime,
+			MaxConnIdleTime:   config.MaxConnIdleTime,
+			HealthCheckPeriod: config.HealthCheckPeriod,
+		},
+	}
+}
+
 // NewSession begins a transaction
 func (d *postgresDAL) NewSession(ctx context.Context) (PGDBSession, error) {
 	tx, err := d.db.BeginTx(ctx, pgx.TxOptions{})

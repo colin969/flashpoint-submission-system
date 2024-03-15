@@ -48,8 +48,10 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 		host = "127.0.0.1"
 	}
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", host, conf.Port),
-		Handler: logging.LogRequestHandler(l, router),
+		Addr:         fmt.Sprintf("%s:%d", host, conf.Port),
+		Handler:      logging.LogRequestHandler(l, router),
+		ReadTimeout:  time.Duration(1) * time.Hour,
+		WriteTimeout: time.Duration(1) * time.Hour,
 	}
 
 	decoder := schema.NewDecoder()

@@ -3660,6 +3660,7 @@ func (s *SiteService) GetGameRedirectsPageData(ctx context.Context) (*types.Game
 		utils.LogCtx(ctx).Error(err)
 		return nil, dberr(err)
 	}
+	defer dbs.Rollback()
 
 	redirects, err := s.pgdal.GetGameRedirects(dbs)
 	if err != nil {
@@ -3730,6 +3731,11 @@ func (s *SiteService) NukeSessionTable(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Returns basic server stats
+func (s *SiteService) Stat() *database.PostgresStats {
+	return s.pgdal.Stat()
 }
 
 func (s *SiteService) SetClientAppSecret(ctx context.Context, clientID string, clientSecret string) error {

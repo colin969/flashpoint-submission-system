@@ -13,6 +13,9 @@ ENV GIT_COMMIT=$GIT_COMMIT
 RUN CGO_ENABLED=0 GOOS=linux go build -o /fpfss ./main/*.go
 
 
-FROM scratch as deploy
+FROM alpine:3.19 as deploy
+ENV GIT_COMMIT="its fucked"
 COPY --from=build /fpfss /fpfss
+COPY /templates /templates
+COPY /static /static
 CMD ["/fpfss"]
