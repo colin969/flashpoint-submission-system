@@ -1820,6 +1820,26 @@ func (a *App) HandleGetUserStatistics(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, us, http.StatusOK)
 }
 
+func (a *App) HandleUserBan(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	params := mux.Vars(r)
+	userIdStr := params[constants.ResourceKeyUserID]
+	userId, err := strconv.Atoi(userIdStr)
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	rows, err := a.Service.UserBan(ctx, int64(userId))
+	if err != nil {
+		writeError(ctx, w, err)
+		return
+	}
+
+	writeResponse(ctx, w, map[string]interface{}{"rows removed": rows}, http.StatusOK)
+}
+
 func (a *App) HandleGetUploadProgress(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

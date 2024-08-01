@@ -117,6 +117,11 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(a.GetServerUser), false))).
 		Methods("GET")
 
+	router.Handle(
+		"/.well-known/openid-configuration",
+		http.HandlerFunc(a.RequestJSON(a.GetOpenIdConfiguration, false))).
+		Methods("GET")
+
 	// pages
 	if !a.Conf.FlashpointSourceOnlyMode {
 		router.Handle(
@@ -813,6 +818,15 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
 			a.RequestScope(a.HandleGetUserStatistics, types.AuthScopeUsersRead),
 			muxAny(isStaff, isTrialCurator, isInAudit)), false))).
+		Methods("GET")
+
+	// user routes
+
+	router.Handle(
+		fmt.Sprintf("/api/user/{%s}/ban", constants.ResourceKeyUserID),
+		http.HandlerFunc(a.RequestJSON(a.UserAuthMux(
+			a.RequestScope(a.HandleUserBan, types.AuthScopeAll),
+			muxAny(isDeleter)), false))).
 		Methods("GET")
 
 	// upload status

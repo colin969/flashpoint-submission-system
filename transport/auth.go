@@ -178,6 +178,32 @@ var stateKeeper = StateKeeper{
 	expirationSeconds: 30,
 }
 
+type OIDCConfig struct {
+    Issuer                            string     `json:"issuer"`
+    AuthorizationEndpoint             string     `json:"authorization_endpoint"`
+    TokenEndpoint                     string     `json:"token_endpoint"`
+    UserinfoEndpoint                  string     `json:"userinfo_endpoint"`
+    SupportedScopes                   string     `json:"scopes_supported"`
+	ResponseTypesSupported            []string   `json:"response_types_supported"`
+}
+
+
+func (a *App) GetOpenIdConfiguration(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	
+	config := OIDCConfig {
+        Issuer:                            "https://fpfss.unstable.life",
+        AuthorizationEndpoint:             "https://fpfss.unstable.life/auth/authorize",
+        TokenEndpoint:                     "https://fpfss.unstable.life/auth/token",
+        UserinfoEndpoint:                  "https://fpfss.unstable.life/api/profile",
+		SupportedScopes:                   "identity",
+		ResponseTypesSupported:            []string{"code"},
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    writeResponse(ctx, w, config, http.StatusOK)
+}
+
 func (a *App) HandleDiscordAuth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

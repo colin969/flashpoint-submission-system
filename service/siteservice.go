@@ -3097,6 +3097,27 @@ func (s *SiteService) DeveloperImportDatabaseJson(ctx context.Context, data *typ
 	return nil
 }
 
+func (s *SiteService) UserBan(ctx context.Context, uid int64) (int64, error) {
+	dbs, err := s.dal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return 0, dberr(err)
+	}
+	defer dbs.Rollback()
+
+	rows, err := s.dal.DeleteUserSessions(dbs, uid)
+	if err != nil {
+		return 0, err
+	}
+
+	err = dbs.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return rows, err
+}
+
 func (s *SiteService) SaveGame(ctx context.Context, game *types.Game) error {
 	uid := utils.UserID(ctx)
 	dbs, err := s.dal.NewSession(ctx)

@@ -23,4 +23,13 @@ var ClientApps = []types.ClientApplication{
 		ClientCredsScopes: []string{types.AuthScopeIdentity, types.AuthScopeGameRead},
 		OwnerUID:          int64(689080719460663414), // Colin
 	},
+	{
+		UserID:            BotUserMinID + 4,
+		UserRoles:         []string{},
+		ClientId:          "planka",
+		Name:              "Flashpoint Planka",
+		Scopes:            []string{types.AuthScopeIdentity},
+		RedirectURIs:      []string{"https://roadmap.flashpointarchive.org/oidc-callback"},
+		OwnerUID:          int64(689080719460663414), // Colin
+	},
 }
