@@ -74,6 +74,8 @@ type PGDAL interface {
 
 	CreateActivityEvent(dbs PGDBSession, event *activityevents.ActivityEvent) error
 	GetActivityEvents(dbs PGDBSession, filter *types.ActivityEventsFilter) ([]*activityevents.ActivityEvent, error)
+
+	GetFrozenGames(dbs PGDBSession) ([]*types.AutounfreezerGame, error)
 }
 
 type DAL interface {

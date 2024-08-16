@@ -950,3 +950,8 @@ type AddGameRedirectRequest struct {
 	SourceId string `json:"sourceId"`
 	DestId   string `json:"destId"`
 }
+
+type AutounfreezerGame struct {
+	GameID      string
+	ReleaseDate string
+}

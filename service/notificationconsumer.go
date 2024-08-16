@@ -13,7 +13,7 @@ import (
 func (s *SiteService) RunNotificationConsumer(logger *logrus.Entry, ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	l := logger.WithField("serviceName", "notificationConsumer")
-	defer l.Info("consumer stopped")
+	defer l.Info("notification consumer stopped")
 
 	bucket, ticker := utils.NewBucketLimiter(10*time.Millisecond, 1)
 	defer ticker.Stop()

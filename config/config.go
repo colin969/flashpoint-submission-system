@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -55,6 +56,7 @@ type Config struct {
 	FlashpointSourceOnlyMode      bool
 	FlashpointSourceOnlyAdminMode bool
 	RecommendationEngineURL       string
+	DoNotUnfreezeGameList         []string
 }
 
 func EnvString(name string) string {
@@ -87,6 +89,21 @@ func EnvBool(name string) bool {
 		return false
 	}
 	panic(fmt.Sprintf("invalid value of env variable '%s'", name))
+}
+
+func EnvJSONList(name string) []string {
+	s := os.Getenv(name)
+	if s == "" {
+		panic(fmt.Sprintf("env variable '%s' is not set", name))
+	}
+
+	var result []string
+	err := json.Unmarshal([]byte(s), &result)
+	if err != nil {
+		panic(fmt.Sprintf("invalid json env variable '%s': %v", name, err))
+	}
+
+	return result
 }
 
 func GetConfig(l *logrus.Entry) *Config {
@@ -146,5 +163,6 @@ func GetConfig(l *logrus.Entry) *Config {
 		FlashpointSourceOnlyMode:      EnvBool("FLASHPOINT_SOURCE_ONLY_MODE"),
 		FlashpointSourceOnlyAdminMode: EnvBool("FLASHPOINT_SOURCE_ONLY_ADMIN_MODE"),
 		RecommendationEngineURL:       EnvString("RECOMMENDATION_ENGINE_URL"),
+		DoNotUnfreezeGameList:         EnvJSONList("DO_NOT_UNFREEZE_GAME_LIST"),
 	}
 }

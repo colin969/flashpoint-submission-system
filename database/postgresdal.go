@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -2169,7 +2170,7 @@ func (d *postgresDAL) GetActivityEvents(dbs PGDBSession, filter *types.ActivityE
            AND created_at < $3
 			ORDER BY created_at`, filter.UserID, from, to)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return events, nil
 		}
 		return nil, err
@@ -2184,4 +2185,29 @@ func (d *postgresDAL) GetActivityEvents(dbs PGDBSession, filter *types.ActivityE
 	}
 
 	return events, nil
+}
+
+func (d *postgresDAL) GetFrozenGames(dbs PGDBSession) ([]*types.AutounfreezerGame, error) {
+	games := make([]*types.AutounfreezerGame, 0)
+
+	rows, err := dbs.Tx().Query(dbs.Ctx(), `
+		SELECT id, release_date FROM public.game
+		WHERE release_date != '' 
+		AND archive_state = 1`)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	for rows.Next() {
+		g := &types.AutounfreezerGame{}
+		err = rows.Scan(&g.GameID, &g.ReleaseDate)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, g)
+	}
+
+	return games, nil
 }

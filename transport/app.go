@@ -110,6 +110,12 @@ func InitApp(l *logrus.Entry, conf *config.Config, db *sql.DB, pgdb *pgxpool.Poo
 		go func() {
 			a.Service.RunNotificationConsumer(l, ctx, wg)
 		}()
+
+		l.Infoln("starting the autounfreezer...")
+		wg.Add(1)
+		go func() {
+			a.Service.RunAutounfreezer(l, ctx, wg, a.Conf.DataPacksDir, a.Conf.FrozenPacksDir, a.Conf.DeletedDataPacksDir, a.Conf.DoNotUnfreezeGameList)
+		}()
 	}
 
 	// disable memstats for now
