@@ -73,6 +73,9 @@ func (s *SiteService) RunAutounfreezer(logger *logrus.Entry, ctx context.Context
 	}
 }
 
+// parseDate parses date string to up to day resolution.
+// If the day is missing, then it is assumed it is the last day of the month.
+// If the month is also missing, then it is assumed it is the last day of the year.
 func parseDate(dateStr string) (time.Time, error) {
 	var layouts = []string{
 		"2006",       // yyyy
