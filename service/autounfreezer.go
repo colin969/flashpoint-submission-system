@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/FlashpointProject/flashpoint-submission-system/constants"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"sync"
@@ -58,12 +59,14 @@ func (s *SiteService) RunAutounfreezer(logger *logrus.Entry, ctx context.Context
 					}
 
 					if releaseTime.Before(ageThreshold) {
-						l.Infof("game %s with release date '%s' will be unfrozen DRY RUN TODO", game.GameID, game.ReleaseDate)
-						//err = s.UnfreezeGame(ctx, gameId, constants.SystemID, dataPacksPath, frozenPacksPath, deletedPacksPath)
-						//if err != nil {
-						//	l.Error(err)
-						//	return
-						//}
+						l.Infof("game %s with release date '%s' will be unfrozen", game.GameID, game.ReleaseDate)
+						err = s.UnfreezeGame(ctx, game.GameID, constants.SystemID, dataPacksPath, frozenPacksPath, deletedPacksPath)
+						if err != nil {
+							l.Error(err)
+							return
+						}
+						// TODO remove this return
+						return
 					}
 				}
 			}
