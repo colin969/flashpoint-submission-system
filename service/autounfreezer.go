@@ -82,6 +82,12 @@ func parseDate(dateStr string) (time.Time, error) {
 
 	for _, layout := range layouts {
 		if t, err := time.Parse(layout, dateStr); err == nil {
+			switch layout {
+			case "2006": // Move to the last day of the year
+				t = time.Date(t.Year(), time.December, 31, 0, 0, 0, 0, time.UTC)
+			case "2006-01": // Move to the last day of the month
+				t = t.AddDate(0, 1, -1)
+			}
 			return t, nil
 		}
 	}
