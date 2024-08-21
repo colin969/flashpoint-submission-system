@@ -16,7 +16,7 @@ func (s *SiteService) RunAutounfreezer(logger *logrus.Entry, ctx context.Context
 	l := logger.WithField("serviceName", "autounfreezer")
 	defer l.Info("autounfreezer stopped")
 
-	ticker := time.NewTicker(time.Minute) // TODO 12 hours or whatever
+	ticker := time.NewTicker(time.Hour * 12)
 	defer ticker.Stop()
 
 	for {
