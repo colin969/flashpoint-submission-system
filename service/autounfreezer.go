@@ -68,8 +68,6 @@ func (s *SiteService) RunAutounfreezer(logger *logrus.Entry, ctx context.Context
 							l.Error(err)
 							return
 						}
-						// TODO remove this return
-						return
 					}
 				}
 			}
