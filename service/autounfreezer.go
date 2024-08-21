@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"sync"
@@ -26,6 +27,8 @@ func (s *SiteService) RunAutounfreezer(logger *logrus.Entry, ctx context.Context
 		case <-ticker.C:
 
 			loop := func() {
+				ctx := context.WithValue(ctx, utils.CtxKeys.Log, l)
+
 				dbs, err := s.pgdal.NewSession(ctx)
 				if err != nil {
 					l.Error(err)
