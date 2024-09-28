@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/bwmarrin/discordgo"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -283,18 +284,32 @@ func (a *App) HandleDiscordCallback(w http.ResponseWriter, r *http.Request) {
 	// Check if internal or external, based on redirect_uri host
 	ipAddr := logging.RequestGetRemoteAddress(r)
 
-	userIsLongEnoughInServer, err := a.Service.IsUserLongEnoughInServer(ctx, discordUser.ID)
+	createdAt, err := discordgo.SnowflakeTimestamp(strconv.FormatInt(discordUser.ID, 10))
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
-		writeError(ctx, w, perr("discord check failed", http.StatusInternalServerError))
+		writeError(ctx, w, perr("user ID error", http.StatusInternalServerError))
 		return
 	}
 
-	if !userIsLongEnoughInServer {
-		utils.LogCtx(ctx).Warnf("user %d forbidden from logging in, not long enough in server", discordUser.ID)
+	ageThreshold := time.Now().Add(-time.Hour * 24 * 30)
+	if !createdAt.Before(ageThreshold) {
+		utils.LogCtx(ctx).Warnf("user %d forbidden from logging in, account not old enough", discordUser.ID)
 		writeError(ctx, w, perr("access denied", http.StatusForbidden))
 		return
 	}
+
+	//userIsLongEnoughInServer, err := a.Service.IsUserLongEnoughInServer(ctx, discordUser.ID)
+	//if err != nil {
+	//	utils.LogCtx(ctx).Error(err)
+	//	writeError(ctx, w, perr("discord check failed", http.StatusInternalServerError))
+	//	return
+	//}
+	//
+	//if !userIsLongEnoughInServer {
+	//	utils.LogCtx(ctx).Warnf("user %d forbidden from logging in, not long enough in server", discordUser.ID)
+	//	writeError(ctx, w, perr("access denied", http.StatusForbidden))
+	//	return
+	//}
 
 	// Logging into FPFSS itself
 	authToken, err := a.Service.SaveUser(ctx, discordUser, types.AuthScopeAll, "FPFSS", ipAddr)
