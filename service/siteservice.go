@@ -1255,6 +1255,18 @@ func (s *SiteService) OverrideBot(ctx context.Context, sid int64) error {
 	return nil
 }
 
+// IsUserLongEnoughInServer returns true if user joined at least ageThreshold ago
+func (s *SiteService) IsUserLongEnoughInServer(ctx context.Context, discordID int64) (bool, error) {
+	joinedAt, err := s.authBot.GetJoinedAtForUser(discordID)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return false, err
+	}
+
+	ageThreshold := time.Now().Add(-time.Hour * 24 * 30)
+	return joinedAt.Before(ageThreshold), nil
+}
+
 func (s *SiteService) SaveUser(ctx context.Context, discordUser *types.DiscordUser, scope string, clientID string, ipAddr string) (*AuthToken, error) {
 	getServerRoles := func() (interface{}, error) {
 		return s.authBot.GetFlashpointRoles()

@@ -2,11 +2,11 @@ package authbot
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
+	"strconv"
+	"time"
 )
 
 type bot struct {
@@ -35,6 +35,17 @@ func ConnectBot(l *logrus.Entry, token string) *discordgo.Session {
 	l.Infoln("discord auth bot connected")
 
 	return dg
+}
+
+// GetJoinedAtForUser returns time the user joined the Flashpoint server
+func (b *bot) GetJoinedAtForUser(uid int64) (time.Time, error) {
+	b.l.WithField("uid", uid).Info("getting flashpoint role ID for user")
+	member, err := b.session.GuildMember(b.flashpointServerID, fmt.Sprint(uid))
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return member.JoinedAt, nil
 }
 
 // GetFlashpointRoleIDsForUser returns user role IDs

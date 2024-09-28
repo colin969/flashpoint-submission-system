@@ -179,29 +179,28 @@ var stateKeeper = StateKeeper{
 }
 
 type OIDCConfig struct {
-    Issuer                            string     `json:"issuer"`
-    AuthorizationEndpoint             string     `json:"authorization_endpoint"`
-    TokenEndpoint                     string     `json:"token_endpoint"`
-    UserinfoEndpoint                  string     `json:"userinfo_endpoint"`
-    SupportedScopes                   string     `json:"scopes_supported"`
-	ResponseTypesSupported            []string   `json:"response_types_supported"`
+	Issuer                 string   `json:"issuer"`
+	AuthorizationEndpoint  string   `json:"authorization_endpoint"`
+	TokenEndpoint          string   `json:"token_endpoint"`
+	UserinfoEndpoint       string   `json:"userinfo_endpoint"`
+	SupportedScopes        string   `json:"scopes_supported"`
+	ResponseTypesSupported []string `json:"response_types_supported"`
 }
-
 
 func (a *App) GetOpenIdConfiguration(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
-	config := OIDCConfig {
-        Issuer:                            "https://fpfss.unstable.life",
-        AuthorizationEndpoint:             "https://fpfss.unstable.life/auth/authorize",
-        TokenEndpoint:                     "https://fpfss.unstable.life/auth/token",
-        UserinfoEndpoint:                  "https://fpfss.unstable.life/api/profile",
-		SupportedScopes:                   "identity",
-		ResponseTypesSupported:            []string{"code"},
-    }
 
-    w.Header().Set("Content-Type", "application/json")
-    writeResponse(ctx, w, config, http.StatusOK)
+	config := OIDCConfig{
+		Issuer:                 "https://fpfss.unstable.life",
+		AuthorizationEndpoint:  "https://fpfss.unstable.life/auth/authorize",
+		TokenEndpoint:          "https://fpfss.unstable.life/auth/token",
+		UserinfoEndpoint:       "https://fpfss.unstable.life/api/profile",
+		SupportedScopes:        "identity",
+		ResponseTypesSupported: []string{"code"},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	writeResponse(ctx, w, config, http.StatusOK)
 }
 
 func (a *App) HandleDiscordAuth(w http.ResponseWriter, r *http.Request) {
@@ -283,6 +282,19 @@ func (a *App) HandleDiscordCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Check if internal or external, based on redirect_uri host
 	ipAddr := logging.RequestGetRemoteAddress(r)
+
+	userIsLongEnoughInServer, err := a.Service.IsUserLongEnoughInServer(ctx, discordUser.ID)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("discord check failed", http.StatusInternalServerError))
+		return
+	}
+
+	if !userIsLongEnoughInServer {
+		utils.LogCtx(ctx).Warnf("user %d forbidden from logging in, not long enough in server", discordUser.ID)
+		writeError(ctx, w, perr("access denied", http.StatusForbidden))
+		return
+	}
 
 	// Logging into FPFSS itself
 	authToken, err := a.Service.SaveUser(ctx, discordUser, types.AuthScopeAll, "FPFSS", ipAddr)
