@@ -833,6 +833,11 @@ type SubmissionStatus struct {
 	SubmissionID *int64  `json:"submission_id"`
 }
 
+type IndexMatchPathResult struct {
+	Path    string            `json:"path"`
+	Matches []*IndexMatchData `json:"data"`
+}
+
 type IndexMatchResult struct {
 	Results []*IndexMatchResultData `json:"results"`
 }
@@ -949,6 +954,10 @@ type ActivityEventsFilter struct {
 type AddGameRedirectRequest struct {
 	SourceId string `json:"sourceId"`
 	DestId   string `json:"destId"`
+}
+
+type IndexPathRequest struct {
+	Path string `json:"path"`
 }
 
 type AutounfreezerGame struct {

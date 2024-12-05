@@ -932,6 +932,29 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, indexMatches, http.StatusOK)
 }
 
+func (a *App) HandleMatchingIndexPath(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var requestBody types.IndexPathRequest
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		http.Error(w, "Invalid request, must have 'path' json parameter", http.StatusBadRequest)
+		return
+	}
+	if !strings.HasPrefix(requestBody.Path, "content/") {
+		requestBody.Path = fmt.Sprintf("content/%s", requestBody.Path)
+	}
+
+	indexMatches, err := a.Service.GetIndexMatchesPath(ctx, requestBody.Path)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		writeError(ctx, w, perr("error checking index", http.StatusInternalServerError))
+		return
+	}
+
+	writeResponse(ctx, w, indexMatches, http.StatusOK)
+}
+
 func (a *App) HandleGameLogo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := utils.UserID(ctx)

@@ -472,6 +472,15 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		http.HandlerFunc(a.RequestJSON(f, false))).
 		Methods("POST")
 
+	f = a.UserAuthMux(
+		a.RequestScope(a.HandleMatchingIndexPath, types.AuthScopeHashCheck),
+		muxAny(isStaff, isTrialCurator))
+
+	router.Handle(
+		"/api/index/path",
+		http.HandlerFunc(a.RequestJSON(f, false))).
+		Methods("POST")
+
 	////////////////////////
 
 	f = a.UserAuthMux(

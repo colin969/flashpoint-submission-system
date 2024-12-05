@@ -445,6 +445,33 @@ func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, 
 	return data, nil
 }
 
+func (s *SiteService) GetIndexMatchesPath(ctx context.Context, path string) (*types.IndexMatchPathResult, error) {
+	dbs, err := s.pgdal.NewSession(ctx)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+	defer dbs.Rollback()
+
+	matches, err := s.pgdal.GetIndexMatchesPath(dbs, path)
+	if err != nil {
+		if err != pgx.ErrNoRows {
+			utils.LogCtx(ctx).Error(err)
+			return nil, dberr(err)
+		} else {
+			// No results, let an empty result happen
+			matches = make([]*types.IndexMatchData, 0)
+		}
+	}
+
+	result := &types.IndexMatchPathResult{
+		Path:    path,
+		Matches: matches,
+	}
+
+	return result, nil
+}
+
 func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int64, gameData *types.GameData) error {
 	uid := utils.UserID(ctx)
 
