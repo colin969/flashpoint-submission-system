@@ -466,6 +466,13 @@ type Game struct {
 	UserID          int64
 }
 
+type GameSlimInfo struct {
+	ID              string    `json:"id"`
+	Title           string    `json:"title"`
+	PrimaryPlatform string    `json:"platform_name,omitempty"`
+	DateAdded       time.Time `json:"date_added"`
+}
+
 type GameData struct {
 	ID              int       `json:"id,omitempty"`
 	GameID          string    `json:"game_id"`
@@ -834,7 +841,8 @@ type SubmissionStatus struct {
 }
 
 type IndexMatchPathResult struct {
-	Path    string            `json:"path"`
+	Paths   []string          `json:"paths"`
+	Games   []*GameSlimInfo   `json:"games"`
 	Matches []*IndexMatchData `json:"data"`
 }
 
@@ -845,6 +853,7 @@ type IndexMatchResult struct {
 type IndexMatchResultData struct {
 	HashType string            `json:"type"`
 	Hash     string            `json:"hash"`
+	Games    []*GameSlimInfo   `json:"games"`
 	Matches  []*IndexMatchData `json:"data"`
 }
 

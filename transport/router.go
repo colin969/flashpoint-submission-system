@@ -464,7 +464,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	////////////////////////
 
 	f = a.UserAuthMux(
-		a.RequestScope(a.HandleMatchingIndexHash, types.AuthScopeHashCheck),
+		a.RequestScope(a.HandleMatchingIndexHash, types.AuthScopeIndexRead),
 		muxAny(isStaff, isTrialCurator))
 
 	router.Handle(
@@ -473,7 +473,7 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 		Methods("POST")
 
 	f = a.UserAuthMux(
-		a.RequestScope(a.HandleMatchingIndexPath, types.AuthScopeHashCheck),
+		a.RequestScope(a.HandleMatchingIndexPath, types.AuthScopeIndexRead),
 		muxAny(isStaff, isTrialCurator))
 
 	router.Handle(

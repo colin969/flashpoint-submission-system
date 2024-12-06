@@ -1,3 +1,17 @@
+// @title           Flashpoint Submission API
+// @version         1.0
+// @description     Yup, it's an API
+
+// @license.name  MIT
+
+// @host      fpfss.unstable.life
+// @BasePath  /
+
+// @securityDefinitions.basic  BasicAuth
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
+
 // Extremely barebones server to demonstrate OAuth 2.0 flow with Discord
 // Uses native net/http to be dependency-less and easy to run.
 // No sessions logic implemented, re-login needed each visit.
@@ -20,6 +34,14 @@ import (
 	"github.com/FlashpointProject/flashpoint-submission-system/utils"
 )
 
+// testHandler is a sample handler
+// @Summary Test API Endpoint
+// @Description A simple test endpoint
+// @Tags test
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "OK"
+// @Router /api/test [get]
 func main() {
 	if os.Getenv("IN_KUBERNETES") != "" {
 		_, err := os.Stat(".env")
@@ -27,7 +49,25 @@ func main() {
 			panic(err)
 		}
 	} else {
-		err := godotenv.Load()
+		err := godotenv.Load() // @title           Swagger Example API
+		// @version         1.0
+		// @description     This is a sample server celler server.
+		// @termsOfService  http://swagger.io/terms/
+
+		// @contact.name   API Support
+		// @contact.url    http://www.swagger.io/support
+		// @contact.email  support@swagger.io
+
+		// @license.name  Apache 2.0
+		// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+		// @host      localhost:8080
+		// @BasePath  /api/v1
+
+		// @securityDefinitions.basic  BasicAuth
+
+		// @externalDocs.description  OpenAPI
+		// @externalDocs.url          https://swagger.io/resources/open-api/
 		if err != nil {
 			panic(err)
 		}

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -932,6 +933,14 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, indexMatches, http.StatusOK)
 }
 
+// testHandler is a sample handler
+// @Summary Test API Endpoint
+// @Description A simple test endpoint
+// @Tags test
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "OK"
+// @Router /api/test2 [get]
 func (a *App) HandleMatchingIndexPath(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -941,11 +950,40 @@ func (a *App) HandleMatchingIndexPath(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request, must have 'path' json parameter", http.StatusBadRequest)
 		return
 	}
-	if !strings.HasPrefix(requestBody.Path, "content/") {
-		requestBody.Path = fmt.Sprintf("content/%s", requestBody.Path)
+	path := requestBody.Path
+	if strings.HasPrefix(path, "content/") {
+		path = strings.TrimPrefix(path, "content/")
+	}
+	// Remove https:// and http:// prefixes
+	for _, prefix := range []string{"https://", "http://"} {
+		if strings.HasPrefix(path, prefix) {
+			path = strings.TrimPrefix(path, prefix)
+			break
+		}
 	}
 
-	indexMatches, err := a.Service.GetIndexMatchesPath(ctx, requestBody.Path)
+	// Generate path variants
+	paths := []string{fmt.Sprintf("content/%s", path)} // Start with the original path
+
+	if strings.HasPrefix(path, "www.") {
+		// Add the variant without "www."
+		paths = append(paths, fmt.Sprintf("content/%s", strings.TrimPrefix(path, "www.")))
+	} else {
+		// Check if the first segment has only one period (e.g., "google.com")
+		firstSegment := strings.SplitN(path, "/", 2)[0] // Get the first segment of the path
+		if strings.Count(firstSegment, ".") == 1 {
+			// Add the variant with "www."
+			wwwVariant := "content/www." + path
+			paths = append(paths, wwwVariant)
+		}
+	}
+
+	// Ensure "www." variant is at the end of the list, if present
+	sort.SliceStable(paths, func(i, j int) bool {
+		return strings.HasPrefix(paths[j], "www.") && !strings.HasPrefix(paths[i], "www.")
+	})
+
+	indexMatches, err := a.Service.GetIndexMatchesPath(ctx, paths)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
 		writeError(ctx, w, perr("error checking index", http.StatusInternalServerError))

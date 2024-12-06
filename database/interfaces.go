@@ -33,6 +33,7 @@ type PGDAL interface {
 	GetTagByName(dbs PGDBSession, tagName string) (*types.Tag, error)
 	GetPlatform(dbs PGDBSession, platformId int64) (*types.Platform, error)
 	GetPlatformByName(dbs PGDBSession, platformName string) (*types.Platform, error)
+	GetGamesSlimInfo(dbs PGDBSession, gameIds []string) ([]*types.GameSlimInfo, error)
 	GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game, error)
 	GetGame(dbs PGDBSession, gameId string) (*types.Game, error)
 	GetGameData(dbs PGDBSession, gameId string, date int64) (*types.GameData, error)
@@ -61,7 +62,7 @@ type PGDAL interface {
 	IndexerMarkFailure(ctx context.Context, gameId string, zipDate time.Time) error
 
 	GetIndexMatchesHash(dbs PGDBSession, hashType string, hashStr string) ([]*types.IndexMatchData, error)
-	GetIndexMatchesPath(dbs PGDBSession, path string) ([]*types.IndexMatchData, error)
+	GetIndexMatchesPath(dbs PGDBSession, paths []string) ([]*types.IndexMatchData, error)
 
 	UpdateTagsFromTagsList(dbs PGDBSession, tagsList []types.Tag) error
 	ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Game, patch *types.GameContentPatch, addApps []*types.CurationAdditionalApp) error

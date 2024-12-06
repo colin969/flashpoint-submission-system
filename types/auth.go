@@ -76,7 +76,7 @@ const (
 	AuthScopeGameDataEdit         = "game-data:edit"
 	AuthScopeGameRead             = "game:read"
 	AuthScopeGameEdit             = "game:edit"
-	AuthScopeHashCheck            = "hash-check"
+	AuthScopeIndexRead            = "index:read"
 	AuthScopeRedirectEdit         = "redirect:edit"
 )
 

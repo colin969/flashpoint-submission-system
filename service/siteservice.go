@@ -414,7 +414,7 @@ func (s *SiteService) GetGamePageData(ctx context.Context, gameId string, imageC
 	return pageData, nil
 }
 
-func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, hashStr string) (*types.IndexMatchResult, error) {
+func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, hashStr string) (*types.IndexMatchResultData, error) {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -433,19 +433,25 @@ func (s *SiteService) GetIndexMatchesHash(ctx context.Context, hashType string, 
 		}
 	}
 
+	uniqueIds := getUniqueGameIDsFromMatches(matches)
+
+	gameInfo, err := s.pgdal.GetGamesSlimInfo(dbs, uniqueIds)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
 	result := &types.IndexMatchResultData{
 		HashType: hashType,
 		Hash:     hashStr,
 		Matches:  matches,
-	}
-	data := &types.IndexMatchResult{
-		Results: []*types.IndexMatchResultData{result},
+		Games:    gameInfo,
 	}
 
-	return data, nil
+	return result, nil
 }
 
-func (s *SiteService) GetIndexMatchesPath(ctx context.Context, path string) (*types.IndexMatchPathResult, error) {
+func (s *SiteService) GetIndexMatchesPath(ctx context.Context, paths []string) (*types.IndexMatchPathResult, error) {
 	dbs, err := s.pgdal.NewSession(ctx)
 	if err != nil {
 		utils.LogCtx(ctx).Error(err)
@@ -453,7 +459,7 @@ func (s *SiteService) GetIndexMatchesPath(ctx context.Context, path string) (*ty
 	}
 	defer dbs.Rollback()
 
-	matches, err := s.pgdal.GetIndexMatchesPath(dbs, path)
+	matches, err := s.pgdal.GetIndexMatchesPath(dbs, paths)
 	if err != nil {
 		if err != pgx.ErrNoRows {
 			utils.LogCtx(ctx).Error(err)
@@ -464,12 +470,37 @@ func (s *SiteService) GetIndexMatchesPath(ctx context.Context, path string) (*ty
 		}
 	}
 
+	uniqueIds := getUniqueGameIDsFromMatches(matches)
+
+	gameInfo, err := s.pgdal.GetGamesSlimInfo(dbs, uniqueIds)
+	if err != nil {
+		utils.LogCtx(ctx).Error(err)
+		return nil, dberr(err)
+	}
+
 	result := &types.IndexMatchPathResult{
-		Path:    path,
+		Paths:   paths,
 		Matches: matches,
+		Games:   gameInfo,
 	}
 
 	return result, nil
+}
+
+func getUniqueGameIDsFromMatches(matches []*types.IndexMatchData) []string {
+	uniqueMap := make(map[string]struct{})
+	var uniqueList []string
+
+	for _, match := range matches {
+		if match.GameID != "legacy" { // Ignore legacy content
+			if _, exists := uniqueMap[match.GameID]; !exists {
+				uniqueMap[match.GameID] = struct{}{}
+				uniqueList = append(uniqueList, match.GameID)
+			}
+		}
+	}
+
+	return uniqueList
 }
 
 func (s *SiteService) SaveGameData(ctx context.Context, gameId string, date int64, gameData *types.GameData) error {

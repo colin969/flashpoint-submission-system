@@ -448,6 +448,26 @@ func (d *postgresDAL) GetGamesUsingTagTotal(dbs PGDBSession, tagId int64) (int64
 	return count, nil
 }
 
+func (d *postgresDAL) GetGamesSlimInfo(dbs PGDBSession, gameIds []string) ([]*types.GameSlimInfo, error) {
+	games := make([]*types.GameSlimInfo, 0)
+	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, title, platform_name, date_added
+		FROM game
+		WHERE id=ANY($1)`, gameIds)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var gameSlimInfo types.GameSlimInfo
+		err = rows.Scan(&gameSlimInfo.ID, &gameSlimInfo.Title, &gameSlimInfo.PrimaryPlatform, &gameSlimInfo.DateAdded)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, &gameSlimInfo)
+	}
+	return games, nil
+}
+
 func (d *postgresDAL) GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game, error) {
 	games := make([]*types.Game, 0)
 	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT id, parent_game_id, title, alternate_titles, series, developer,
@@ -709,16 +729,34 @@ func (d *postgresDAL) GetIndexMatchesHash(dbs PGDBSession, hashType string, hash
 	return data, nil
 }
 
-func (d *postgresDAL) GetIndexMatchesPath(dbs PGDBSession, path string) ([]*types.IndexMatchData, error) {
+func (d *postgresDAL) GetIndexMatchesPath(dbs PGDBSession, paths []string) ([]*types.IndexMatchData, error) {
 	data := make([]*types.IndexMatchData, 0)
 
-	rows, err := dbs.Tx().Query(dbs.Ctx(), `SELECT 
-		encode(crc32, 'hex'), 
-        encode(md5, 'hex'),
-        encode(sha1, 'hex'),
-        encode(sha256, 'hex'),
-        size, path, game_id, zip_date 
-		FROM game_data_index WHERE path >= $1 AND path < $2 LIMIT 250000`, path, path+"\u10FFFF")
+	// If no paths are provided, return an empty result
+	if len(paths) == 0 {
+		return data, nil
+	}
+
+	// Dynamically build the WHERE clause for multiple ranges
+	conditions := make([]string, len(paths))
+	args := make([]interface{}, 0, len(paths)*2)
+	for i, path := range paths {
+		conditions[i] = fmt.Sprintf("(path >= $%d AND path < $%d)", i*2+1, i*2+2)
+		args = append(args, path, path+"\u10FFFF")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT 
+			encode(crc32, 'hex'), 
+			encode(md5, 'hex'),
+			encode(sha1, 'hex'),
+			encode(sha256, 'hex'),
+			size, path, game_id, zip_date 
+		FROM game_data_index 
+		WHERE %s 
+		LIMIT 250000`, strings.Join(conditions, " OR "))
+
+	rows, err := dbs.Tx().Query(dbs.Ctx(), query, args...)
 	if err != nil {
 		return nil, err
 	}
