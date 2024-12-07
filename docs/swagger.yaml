@@ -1,0 +1,153 @@
+basePath: /
+definitions:
+  ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  GameSlim:
+    properties:
+      date_added:
+        example: "2018-01-12T02:13:56.633Z"
+        type: string
+      id:
+        example: 08143aa7-f3ae-45b0-a1d4-afa4ac44c845
+        type: string
+      platform_name:
+        example: Flash
+        type: string
+      title:
+        example: Alien Hominid
+        type: string
+    type: object
+  IndexHashResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/IndexMatch'
+        type: array
+      games:
+        items:
+          $ref: '#/definitions/GameSlim'
+        type: array
+      hash:
+        example: d32d41389d088db60d177d731d83f839
+        type: string
+      type:
+        example: md5
+        type: string
+    type: object
+  IndexMatch:
+    properties:
+      crc32:
+        example: b102ef01
+        type: string
+      date_added:
+        example: 1704945196068
+        type: integer
+      game_id:
+        example: 08143aa7-f3ae-45b0-a1d4-afa4ac44c845
+        type: string
+      md5:
+        example: d32d41389d088db60d177d731d83f839
+        type: string
+      path:
+        example: content/uploads.ungrounded.net/59000/59593_alien_booya202c.swf
+        type: string
+      sha1:
+        example: d435e0d0eefe30d437f0df41c926449077cab22e
+        type: string
+      sha256:
+        example: 06c8bf04fd9a3d49fa9e1fe7bb54e4f085aae4163f7f9fbca55c8622bc2a6278
+        type: string
+      size:
+        example: 2037879
+        type: integer
+    type: object
+  IndexPathRequest:
+    properties:
+      path:
+        type: string
+    type: object
+  IndexPathResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/IndexMatch'
+        type: array
+      games:
+        items:
+          $ref: '#/definitions/GameSlim'
+        type: array
+      paths:
+        example:
+        - content/uploads.ungrounded.net/59000/
+        items:
+          type: string
+        type: array
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: fpfss.unstable.life
+info:
+  contact: {}
+  description: Yup, it's an API
+  license:
+    name: MIT
+  title: Flashpoint Submission API
+  version: "1.0"
+paths:
+  /api/index/hash/{hash}:
+    post:
+      consumes:
+      - application/json
+      description: Find matching indexed files with a given hash
+      parameters:
+      - description: Hash to check
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/IndexHashResponse'
+      summary: Index Hash Search
+      tags:
+      - Game Data Index
+  /api/index/path:
+    post:
+      consumes:
+      - application/json
+      description: Find matching indexed files with a given path prefix
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/IndexPathRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/IndexPathResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Index Path Search
+      tags:
+      - Game Data Index
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

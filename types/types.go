@@ -393,7 +393,7 @@ type DeletedGame struct {
 	ID           string    `json:"id"`
 	DateModified time.Time `json:"date_modified"`
 	Reason       string    `json:"reason"`
-}
+} // @name DeletedGame
 
 type GameDump struct {
 	ID              string           `json:"id"`
@@ -464,14 +464,14 @@ type Game struct {
 	ArchiveState    ArchiveState     `json:"archive_state"`
 	Deleted         bool
 	UserID          int64
-}
+} // @name Game
 
 type GameSlimInfo struct {
-	ID              string    `json:"id"`
-	Title           string    `json:"title"`
-	PrimaryPlatform string    `json:"platform_name,omitempty"`
-	DateAdded       time.Time `json:"date_added"`
-}
+	ID              string    `json:"id" example:"08143aa7-f3ae-45b0-a1d4-afa4ac44c845"`
+	Title           string    `json:"title" example:"Alien Hominid"`
+	PrimaryPlatform string    `json:"platform_name,omitempty" example:"Flash"`
+	DateAdded       time.Time `json:"date_added" example:"2018-01-12T02:13:56.633Z"`
+} // @name GameSlim
 
 type GameData struct {
 	ID              int       `json:"id,omitempty"`
@@ -486,7 +486,7 @@ type GameData struct {
 	LaunchCommand   string    `json:"launch_command"`
 	Indexed         bool      `json:"indexed"`
 	IndexError      bool      `json:"index_error"`
-}
+} // @name GameData
 
 type AdditionalApp struct {
 	ID              string `json:"id,omitempty"`
@@ -496,7 +496,7 @@ type AdditionalApp struct {
 	Name            string `json:"name"`
 	WaitForExit     bool   `json:"wait_for_exit"`
 	ParentGameID    string `json:"parent_game_id"`
-}
+} // @name AdditionalApp
 
 type Platform struct {
 	ID           int64     `json:"id"`
@@ -508,12 +508,12 @@ type Platform struct {
 	Reason       string    `json:"reason"`
 	Deleted      bool
 	UserID       int64 `json:"user_id"`
-}
+} // @name Platform
 
 type PlatformAlias struct {
 	PlatformID int64  `json:"platform_id"`
 	Name       string `json:"name"`
-}
+} // @name PlatformAlias
 
 type Tag struct {
 	ID           int64     `json:"id"`
@@ -526,19 +526,19 @@ type Tag struct {
 	Reason       string    `json:"reason"`
 	Deleted      bool
 	UserID       int64 `json:"user_id"`
-}
+} // @name Tag
 
 type TagAlias struct {
 	TagID int64  `json:"tag_id"`
 	Name  string `json:"name"`
-}
+} // @name TagAlias
 
 type TagCategory struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Color       string `json:"color"`
 	Description string `json:"description"`
-}
+} // @name TagCategory
 
 type LauncherDumpRelation struct {
 	GameID string `json:"g"`
@@ -841,32 +841,32 @@ type SubmissionStatus struct {
 }
 
 type IndexMatchPathResult struct {
-	Paths   []string          `json:"paths"`
+	Paths   []string          `json:"paths" example:"content/uploads.ungrounded.net/59000/"`
 	Games   []*GameSlimInfo   `json:"games"`
 	Matches []*IndexMatchData `json:"data"`
-}
+} // @name IndexPathResponse
 
 type IndexMatchResult struct {
 	Results []*IndexMatchResultData `json:"results"`
 }
 
 type IndexMatchResultData struct {
-	HashType string            `json:"type"`
-	Hash     string            `json:"hash"`
+	HashType string            `json:"type" example:"md5"`
+	Hash     string            `json:"hash" example:"d32d41389d088db60d177d731d83f839"`
 	Games    []*GameSlimInfo   `json:"games"`
 	Matches  []*IndexMatchData `json:"data"`
-}
+} // @name IndexHashResponse
 
 type IndexMatchData struct {
-	SHA256 string `json:"sha256"`
-	SHA1   string `json:"sha1"`
-	CRC32  string `json:"crc32"`
-	MD5    string `json:"md5"`
-	Path   string `json:"path"`
-	Size   int64  `json:"size"`
-	GameID string `json:"game_id"`
-	Date   int64  `json:"date_added"`
-}
+	SHA256 string `json:"sha256" example:"06c8bf04fd9a3d49fa9e1fe7bb54e4f085aae4163f7f9fbca55c8622bc2a6278"`
+	SHA1   string `json:"sha1" example:"d435e0d0eefe30d437f0df41c926449077cab22e"`
+	CRC32  string `json:"crc32" example:"b102ef01"`
+	MD5    string `json:"md5" example:"d32d41389d088db60d177d731d83f839"`
+	Path   string `json:"path" example:"content/uploads.ungrounded.net/59000/59593_alien_booya202c.swf"`
+	Size   int64  `json:"size" example:"2037879"`
+	GameID string `json:"game_id" example:"08143aa7-f3ae-45b0-a1d4-afa4ac44c845"`
+	Date   int64  `json:"date_added" example:"1704945196068"`
+} // @name IndexMatch
 
 type GameRedirect struct {
 	SourceId  string    `json:"source_id"`
@@ -967,7 +967,7 @@ type AddGameRedirectRequest struct {
 
 type IndexPathRequest struct {
 	Path string `json:"path"`
-}
+} // @name IndexPathRequest
 
 type AutounfreezerGame struct {
 	GameID      string

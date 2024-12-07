@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	"github.com/FlashpointProject/flashpoint-submission-system/constants"
+	_ "github.com/FlashpointProject/flashpoint-submission-system/docs"
 	"github.com/FlashpointProject/flashpoint-submission-system/types"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Router) {
@@ -72,6 +74,15 @@ func (a *App) handleRequests(l *logrus.Entry, srv *http.Server, router *mux.Rout
 	// static file server
 	router.PathPrefix("/static/").Handler(
 		http.StripPrefix("/static/", NoCache(http.FileServer(http.Dir("./static/")))))
+
+	router.HandleFunc("/swagger/docs.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./docs/swagger.json")
+	})
+
+	swaggerHandler := httpSwagger.Handler(
+		httpSwagger.URL("/swagger/docs.json"),
+	)
+	router.PathPrefix("/swagger/").Handler(swaggerHandler)
 
 	// auth
 	router.Handle(

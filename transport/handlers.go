@@ -903,6 +903,14 @@ func (a *App) HandleRestoreGame(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, map[string]interface{}{"status": "success"}, http.StatusOK)
 }
 
+// @Summary Index Hash Search
+// @Description Find matching indexed files with a given hash
+// @Tags Game Data Index
+// @Param hash path string true "Hash to check"
+// @Accept json
+// @Produce json
+// @Success 200 {object} types.IndexMatchResultData
+// @Router /api/index/hash/{hash} [post]
 func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
@@ -933,14 +941,15 @@ func (a *App) HandleMatchingIndexHash(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, indexMatches, http.StatusOK)
 }
 
-// testHandler is a sample handler
-// @Summary Test API Endpoint
-// @Description A simple test endpoint
-// @Tags test
+// @Summary Index Path Search
+// @Description Find matching indexed files with a given path prefix
+// @Tags Game Data Index
+// @Param request body types.IndexPathRequest true "Request body"
 // @Accept json
 // @Produce json
-// @Success 200 {string} string "OK"
-// @Router /api/test2 [get]
+// @Success 200 {object} types.IndexMatchPathResult
+// @Failure 400 {object} constants.PublicError
+// @Router /api/index/path [post]
 func (a *App) HandleMatchingIndexPath(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -951,9 +960,8 @@ func (a *App) HandleMatchingIndexPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path := requestBody.Path
-	if strings.HasPrefix(path, "content/") {
-		path = strings.TrimPrefix(path, "content/")
-	}
+	path = strings.TrimPrefix(path, "content/")
+
 	// Remove https:// and http:// prefixes
 	for _, prefix := range []string{"https://", "http://"} {
 		if strings.HasPrefix(path, prefix) {

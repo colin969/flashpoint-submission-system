@@ -18,4 +18,5 @@ ENV GIT_COMMIT="its fucked"
 COPY --from=build /fpfss /fpfss
 COPY /templates /templates
 COPY /static /static
+COPY /docs /docs
 CMD ["/fpfss"]
