@@ -588,6 +588,12 @@ func (a *App) HandleGamesPage(w http.ResponseWriter, r *http.Request) {
 	writeResponse(ctx, w, res, http.StatusOK)
 }
 
+// @Summary All Tags
+// @Description Detailed list of all tags
+// @Tags Tagged Fields
+// @Produce json
+// @Success 200 {array} types.Tag
+// @Router /api/tags [get]
 func (a *App) HandleTagsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -617,6 +623,12 @@ func (a *App) HandleTagsPage(w http.ResponseWriter, r *http.Request) {
 		"templates/tags.gohtml")
 }
 
+// @Summary All Platforms
+// @Description Detailed list of all platforms
+// @Tags Tagged Fields
+// @Produce json
+// @Success 200 {array} types.Platform
+// @Router /api/platforms [get]
 func (a *App) HandlePlatformsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -680,9 +692,16 @@ func (a *App) HandlePostTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeResponse(ctx, w, pageData.Tag, http.StatusOK)
-	return
 }
 
+// @Summary Tag Info
+// @Description Find detailed info for a tag
+// @Tags Tagged Fields
+// @Param id_or_name path string true "Tag ID or Name"
+// @Produce json
+// @Success 200 {object} types.Tag
+// @Failure 404 {object} constants.PublicError
+// @Router /api/tag/{id_or_name} [get]
 func (a *App) HandleTagPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
@@ -735,6 +754,14 @@ func (a *App) HandleTagEditPage(w http.ResponseWriter, r *http.Request) {
 		"templates/tag-edit.gohtml")
 }
 
+// @Summary Game Info
+// @Description Find detailed info for a game
+// @Tags Game
+// @Param id path string true "Game ID"
+// @Produce json
+// @Success 200 {object} types.Game
+// @Failure 404 {object} constants.PublicError
+// @Router /api/game/{id} [get]
 func (a *App) HandleGamePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
@@ -821,6 +848,15 @@ func (a *App) HandleGameDataEditPage(w http.ResponseWriter, r *http.Request) {
 		"templates/game-data-edit.gohtml")
 }
 
+// @Summary Game Data Info
+// @Description Find the indexed file list for a given game data entry
+// @Tags Game
+// @Param id path string true "Game ID"
+// @Param date path number true "Game Data Creation Date (Unix Milliseconds)"
+// @Produce json
+// @Success 200 {object} types.GameDataIndex
+// @Failure 404 {object} constants.PublicError
+// @Router /api/game/{id}/data/{date}/index [get]
 func (a *App) HandleGameDataIndexPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)

@@ -12,6 +12,83 @@
     "host": "fpfss.unstable.life",
     "basePath": "/",
     "paths": {
+        "/api/game/{id}": {
+            "get": {
+                "description": "Find detailed info for a game",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "Game Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Game"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/game/{id}/data/{date}/index": {
+            "get": {
+                "description": "Find the indexed file list for a given game data entry",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Game"
+                ],
+                "summary": "Game Data Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Game Data Creation Date (Unix Milliseconds)",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GameDataIndex"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/index/hash/{hash}": {
             "post": {
                 "description": "Find matching indexed files with a given hash",
@@ -83,9 +160,116 @@
                     }
                 }
             }
+        },
+        "/api/platforms": {
+            "get": {
+                "description": "Detailed list of all platforms",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tagged Fields"
+                ],
+                "summary": "All Platforms",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Platform"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tag/{id_or_name}": {
+            "get": {
+                "description": "Find detailed info for a tag",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tagged Fields"
+                ],
+                "summary": "Tag Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tag ID or Name",
+                        "name": "id_or_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Tag"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tags": {
+            "get": {
+                "description": "Detailed list of all tags",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tagged Fields"
+                ],
+                "summary": "All Tags",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Tag"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "AdditionalApp": {
+            "type": "object",
+            "properties": {
+                "application_path": {
+                    "type": "string"
+                },
+                "auto_run_before": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "launch_command": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_game_id": {
+                    "type": "string"
+                },
+                "wait_for_exit": {
+                    "type": "boolean"
+                }
+            }
+        },
         "ErrorResponse": {
             "type": "object",
             "properties": {
@@ -94,6 +278,238 @@
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "Game": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "example": "update"
+                },
+                "active_data_id": {
+                    "type": "integer"
+                },
+                "add_apps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AdditionalApp"
+                    }
+                },
+                "alternate_titles": {
+                    "type": "string"
+                },
+                "application_path": {
+                    "type": "string",
+                    "example": ""
+                },
+                "archive_state": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/types.ArchiveState"
+                        }
+                    ],
+                    "example": 2
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GameData"
+                    }
+                },
+                "date_added": {
+                    "type": "string",
+                    "example": "2018-01-12T02:13:56.633Z"
+                },
+                "date_modified": {
+                    "type": "string",
+                    "example": "2024-11-07T20:10:17.239011Z"
+                },
+                "deleted": {
+                    "type": "boolean"
+                },
+                "developer": {
+                    "type": "string",
+                    "example": "Dan Paladin / DanPaladin / Synj; Tom Fulp / TomFulp; FDA"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "08143aa7-f3ae-45b0-a1d4-afa4ac44c845"
+                },
+                "language": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "launch_command": {
+                    "type": "string",
+                    "example": ""
+                },
+                "library": {
+                    "type": "string",
+                    "example": "arcade"
+                },
+                "notes": {
+                    "type": "string",
+                    "example": ""
+                },
+                "original_description": {
+                    "type": "string",
+                    "example": "Alien Hominid HD is now available on Xbox 360 Live Arcade! Go try it and buy it!\n\nYour UFO has crash landed, and the FBI is out to get you! Time to take them out!\n\nProgramming by Tom Fulp of Newgrounds.com!\nArt by Dan Paladin!\n\nControls:\nUse the arrows to run around and aim your gun. The 'a' key shoots and the 's' key jumps. When jumping over an enemy, press DOWN and 's' to do a freak attack!\n\n****HINTS****\n* You can ride enemy heads past roadblocks. they can run right through while they are freaking out!\n\n* Eat enemy skulls in front of other enemies while on their shoulders -- their friend's reaction will give you a free cheapshot!\n\n* If all else fails, you can try crawling your way to the end like the scum you are! haha\n\n8/20/02 UPDATE:\nFixed grenade / Freak Attack Glitch\nFixed CAPS LOCK issues\nRemoved first grenade guy (now just 1)\nAdded first level intro cinema!"
+                },
+                "parent_game_id": {
+                    "type": "string"
+                },
+                "platform_name": {
+                    "type": "string",
+                    "example": "Flash"
+                },
+                "platforms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Platform"
+                    }
+                },
+                "platforms_str": {
+                    "type": "string",
+                    "example": "Flash"
+                },
+                "play_mode": {
+                    "type": "string",
+                    "example": "Single Player"
+                },
+                "publisher": {
+                    "type": "string",
+                    "example": "Newgrounds"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "User changed metadata"
+                },
+                "release_date": {
+                    "type": "string",
+                    "example": "2002-08-07"
+                },
+                "series": {
+                    "type": "string",
+                    "example": ""
+                },
+                "source": {
+                    "type": "string",
+                    "example": "https://www.newgrounds.com/portal/view/59593"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "Playable"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Tag"
+                    }
+                },
+                "tags_str": {
+                    "type": "string",
+                    "example": "Alien Hominid; Action; Arcade; Beat 'Em Up; Platformer; Run 'n' Gun; Score-Attack; Shooter; Cartoon; Officially Licensed; Side View; Alien; Blood; Moderate Violence"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Alien Hominid"
+                },
+                "userID": {
+                    "type": "integer",
+                    "example": 529007944449261600
+                },
+                "version": {
+                    "type": "string",
+                    "example": ""
+                }
+            }
+        },
+        "GameData": {
+            "type": "object",
+            "properties": {
+                "application_path": {
+                    "type": "string"
+                },
+                "crc_32": {
+                    "type": "integer"
+                },
+                "date_added": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "index_error": {
+                    "type": "boolean"
+                },
+                "indexed": {
+                    "type": "boolean"
+                },
+                "launch_command": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "string"
+                },
+                "sha_256": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "GameDataIndex": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GameDataIndexFile"
+                    }
+                },
+                "date_added": {
+                    "type": "integer"
+                },
+                "game_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "GameDataIndexFile": {
+            "type": "object",
+            "properties": {
+                "crc32": {
+                    "type": "string",
+                    "example": "b102ef01"
+                },
+                "md5": {
+                    "type": "string",
+                    "example": "d32d41389d088db60d177d731d83f839"
+                },
+                "path": {
+                    "type": "string",
+                    "example": "content/uploads.ungrounded.net/59000/59593_alien_booya202c.swf"
+                },
+                "sha1": {
+                    "type": "string",
+                    "example": "d435e0d0eefe30d437f0df41c926449077cab22e"
+                },
+                "sha256": {
+                    "type": "string",
+                    "example": "06c8bf04fd9a3d49fa9e1fe7bb54e4f085aae4163f7f9fbca55c8622bc2a6278"
+                },
+                "size": {
+                    "type": "integer",
+                    "example": 2037879
                 }
             }
         },
@@ -213,6 +629,103 @@
                     ]
                 }
             }
+        },
+        "Platform": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "example": ""
+                },
+                "aliases": {
+                    "type": "string",
+                    "example": "Flash"
+                },
+                "date_modified": {
+                    "type": "string",
+                    "example": "2023-04-26T19:27:31.849994Z"
+                },
+                "deleted": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string",
+                    "example": ""
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 24
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Flash"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": ""
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 810112564787675100
+                }
+            }
+        },
+        "Tag": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "example": "create"
+                },
+                "aliases": {
+                    "type": "string",
+                    "example": "Action"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "genre"
+                },
+                "date_modified": {
+                    "type": "string",
+                    "example": "2023-04-26T19:27:31.849994Z"
+                },
+                "deleted": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string",
+                    "example": ""
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Action"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "Database Import"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 810112564787675166
+                }
+            }
+        },
+        "types.ArchiveState": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "NotArchived",
+                "Archived",
+                "Available"
+            ]
         }
     },
     "securityDefinitions": {

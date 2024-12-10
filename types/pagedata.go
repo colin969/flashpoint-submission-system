@@ -66,19 +66,19 @@ type GamePageData struct {
 }
 
 type GameDataIndexFile struct {
-	SHA256 string `json:"sha256"`
-	SHA1   string `json:"sha1"`
-	CRC32  string `json:"crc32"`
-	MD5    string `json:"md5"`
-	Path   string `json:"path"`
-	Size   int64  `json:"size"`
-}
+	SHA256 string `json:"sha256" example:"06c8bf04fd9a3d49fa9e1fe7bb54e4f085aae4163f7f9fbca55c8622bc2a6278"`
+	SHA1   string `json:"sha1" example:"d435e0d0eefe30d437f0df41c926449077cab22e"`
+	CRC32  string `json:"crc32" example:"b102ef01"`
+	MD5    string `json:"md5" example:"d32d41389d088db60d177d731d83f839"`
+	Path   string `json:"path" example:"content/uploads.ungrounded.net/59000/59593_alien_booya202c.swf"`
+	Size   int64  `json:"size" example:"2037879"`
+} // @name GameDataIndexFile
 
 type GameDataIndex struct {
-	GameID string              `json:"game_id"`
-	Date   int64               `json:"date_added"`
+	GameID string              `json:"game_id" example:"08143aa7-f3ae-45b0-a1d4-afa4ac44c845"`
+	Date   int64               `json:"date_added" example:"1704945196068"`
 	Data   []GameDataIndexFile `json:"data"`
-}
+} // @name GameDataIndex
 
 type GameDataPageData struct {
 	BasePageData

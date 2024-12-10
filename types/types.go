@@ -431,39 +431,39 @@ type GameDump struct {
 }
 
 type Game struct {
-	ID              string           `json:"id"`
+	ID              string           `json:"id" example:"08143aa7-f3ae-45b0-a1d4-afa4ac44c845"`
 	ParentGameID    *string          `json:"parent_game_id,omitempty"`
-	Title           string           `json:"title"`
+	Title           string           `json:"title" example:"Alien Hominid"`
 	AlternateTitles string           `json:"alternate_titles"`
-	Series          string           `json:"series"`
-	Developer       string           `json:"developer"`
-	Publisher       string           `json:"publisher"`
-	PrimaryPlatform string           `json:"platform_name,omitempty"`
+	Series          string           `json:"series" example:""`
+	Developer       string           `json:"developer" example:"Dan Paladin / DanPaladin / Synj; Tom Fulp / TomFulp; FDA"`
+	Publisher       string           `json:"publisher" example:"Newgrounds"`
+	PrimaryPlatform string           `json:"platform_name,omitempty" example:"Flash"`
 	Platforms       []*Platform      `json:"platforms,omitempty"`
-	PlatformsStr    string           `json:"platforms_str"`
-	DateAdded       time.Time        `json:"date_added"`
-	DateModified    time.Time        `json:"date_modified"`
-	PlayMode        string           `json:"play_mode"`
-	Status          string           `json:"status"`
-	Notes           string           `json:"notes"`
+	PlatformsStr    string           `json:"platforms_str" example:"Flash"`
+	DateAdded       time.Time        `json:"date_added" example:"2018-01-12T02:13:56.633Z"`
+	DateModified    time.Time        `json:"date_modified" example:"2024-11-07T20:10:17.239011Z"`
+	PlayMode        string           `json:"play_mode" example:"Single Player"`
+	Status          string           `json:"status" example:"Playable"`
+	Notes           string           `json:"notes" example:""`
 	Tags            []*Tag           `json:"tags,omitempty"`
-	TagsStr         string           `json:"tags_str"`
-	Source          string           `json:"source"`
-	ApplicationPath string           `json:"application_path"`
-	LaunchCommand   string           `json:"launch_command"`
-	ReleaseDate     string           `json:"release_date"`
-	Version         string           `json:"version"`
-	OriginalDesc    string           `json:"original_description"`
-	Language        string           `json:"language"`
-	Library         string           `json:"library"`
+	TagsStr         string           `json:"tags_str" example:"Alien Hominid; Action; Arcade; Beat 'Em Up; Platformer; Run 'n' Gun; Score-Attack; Shooter; Cartoon; Officially Licensed; Side View; Alien; Blood; Moderate Violence"`
+	Source          string           `json:"source" example:"https://www.newgrounds.com/portal/view/59593"`
+	ApplicationPath string           `json:"application_path" example:""`
+	LaunchCommand   string           `json:"launch_command" example:""`
+	ReleaseDate     string           `json:"release_date" example:"2002-08-07"`
+	Version         string           `json:"version" example:""`
+	OriginalDesc    string           `json:"original_description" example:"Alien Hominid HD is now available on Xbox 360 Live Arcade! Go try it and buy it!\n\nYour UFO has crash landed, and the FBI is out to get you! Time to take them out!\n\nProgramming by Tom Fulp of Newgrounds.com!\nArt by Dan Paladin!\n\nControls:\nUse the arrows to run around and aim your gun. The 'a' key shoots and the 's' key jumps. When jumping over an enemy, press DOWN and 's' to do a freak attack!\n\n****HINTS****\n* You can ride enemy heads past roadblocks. they can run right through while they are freaking out!\n\n* Eat enemy skulls in front of other enemies while on their shoulders -- their friend's reaction will give you a free cheapshot!\n\n* If all else fails, you can try crawling your way to the end like the scum you are! haha\n\n8/20/02 UPDATE:\nFixed grenade / Freak Attack Glitch\nFixed CAPS LOCK issues\nRemoved first grenade guy (now just 1)\nAdded first level intro cinema!"`
+	Language        string           `json:"language" example:"en"`
+	Library         string           `json:"library" example:"arcade"`
 	AddApps         []*AdditionalApp `json:"add_apps"`
 	ActiveDataID    *int             `json:"active_data_id,omitempty"`
 	Data            []*GameData      `json:"data,omitempty"`
-	Action          string           `json:"action"`
-	Reason          string           `json:"reason"`
-	ArchiveState    ArchiveState     `json:"archive_state"`
+	Action          string           `json:"action" example:"update"`
+	Reason          string           `json:"reason" example:"User changed metadata"`
+	ArchiveState    ArchiveState     `json:"archive_state" example:"2"`
 	Deleted         bool
-	UserID          int64
+	UserID          int64 `example:"529007944449261600"`
 } // @name Game
 
 type GameSlimInfo struct {
@@ -499,15 +499,15 @@ type AdditionalApp struct {
 } // @name AdditionalApp
 
 type Platform struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	DateModified time.Time `json:"date_modified"`
-	Aliases      *string   `json:"aliases,omitempty"`
-	Action       string    `json:"action"`
-	Reason       string    `json:"reason"`
+	ID           int64     `json:"id" example:"24"`
+	Name         string    `json:"name" example:"Flash"`
+	Description  string    `json:"description" example:""`
+	DateModified time.Time `json:"date_modified" example:"2023-04-26T19:27:31.849994Z"`
+	Aliases      *string   `json:"aliases,omitempty" example:"Flash"`
+	Action       string    `json:"action" example:""`
+	Reason       string    `json:"reason" example:""`
 	Deleted      bool
-	UserID       int64 `json:"user_id"`
+	UserID       int64 `json:"user_id" example:"810112564787675100"`
 } // @name Platform
 
 type PlatformAlias struct {
@@ -516,16 +516,16 @@ type PlatformAlias struct {
 } // @name PlatformAlias
 
 type Tag struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	DateModified time.Time `json:"date_modified"`
-	Category     string    `json:"category"`
-	Aliases      *string   `json:"aliases,omitempty"`
-	Action       string    `json:"action"`
-	Reason       string    `json:"reason"`
+	ID           int64     `json:"id" example:"6"`
+	Name         string    `json:"name" example:"Action"`
+	Description  string    `json:"description" example:""`
+	DateModified time.Time `json:"date_modified" example:"2023-04-26T19:27:31.849994Z"`
+	Category     string    `json:"category" example:"genre"`
+	Aliases      *string   `json:"aliases,omitempty" example:"Action"`
+	Action       string    `json:"action" example:"create"`
+	Reason       string    `json:"reason" example:"Database Import"`
 	Deleted      bool
-	UserID       int64 `json:"user_id"`
+	UserID       int64 `json:"user_id" example:"810112564787675166"`
 } // @name Tag
 
 type TagAlias struct {

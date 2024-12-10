@@ -1,10 +1,213 @@
 basePath: /
 definitions:
+  AdditionalApp:
+    properties:
+      application_path:
+        type: string
+      auto_run_before:
+        type: boolean
+      id:
+        type: string
+      launch_command:
+        type: string
+      name:
+        type: string
+      parent_game_id:
+        type: string
+      wait_for_exit:
+        type: boolean
+    type: object
   ErrorResponse:
     properties:
       message:
         type: string
       status:
+        type: integer
+    type: object
+  Game:
+    properties:
+      action:
+        example: update
+        type: string
+      active_data_id:
+        type: integer
+      add_apps:
+        items:
+          $ref: '#/definitions/AdditionalApp'
+        type: array
+      alternate_titles:
+        type: string
+      application_path:
+        example: ""
+        type: string
+      archive_state:
+        allOf:
+        - $ref: '#/definitions/types.ArchiveState'
+        example: 2
+      data:
+        items:
+          $ref: '#/definitions/GameData'
+        type: array
+      date_added:
+        example: "2018-01-12T02:13:56.633Z"
+        type: string
+      date_modified:
+        example: "2024-11-07T20:10:17.239011Z"
+        type: string
+      deleted:
+        type: boolean
+      developer:
+        example: Dan Paladin / DanPaladin / Synj; Tom Fulp / TomFulp; FDA
+        type: string
+      id:
+        example: 08143aa7-f3ae-45b0-a1d4-afa4ac44c845
+        type: string
+      language:
+        example: en
+        type: string
+      launch_command:
+        example: ""
+        type: string
+      library:
+        example: arcade
+        type: string
+      notes:
+        example: ""
+        type: string
+      original_description:
+        example: |-
+          Alien Hominid HD is now available on Xbox 360 Live Arcade! Go try it and buy it!
+
+          Your UFO has crash landed, and the FBI is out to get you! Time to take them out!
+
+          Programming by Tom Fulp of Newgrounds.com!
+          Art by Dan Paladin!
+
+          Controls:
+          Use the arrows to run around and aim your gun. The 'a' key shoots and the 's' key jumps. When jumping over an enemy, press DOWN and 's' to do a freak attack!
+
+          ****HINTS****
+          * You can ride enemy heads past roadblocks. they can run right through while they are freaking out!
+
+          * Eat enemy skulls in front of other enemies while on their shoulders -- their friend's reaction will give you a free cheapshot!
+
+          * If all else fails, you can try crawling your way to the end like the scum you are! haha
+
+          8/20/02 UPDATE:
+          Fixed grenade / Freak Attack Glitch
+          Fixed CAPS LOCK issues
+          Removed first grenade guy (now just 1)
+          Added first level intro cinema!
+        type: string
+      parent_game_id:
+        type: string
+      platform_name:
+        example: Flash
+        type: string
+      platforms:
+        items:
+          $ref: '#/definitions/Platform'
+        type: array
+      platforms_str:
+        example: Flash
+        type: string
+      play_mode:
+        example: Single Player
+        type: string
+      publisher:
+        example: Newgrounds
+        type: string
+      reason:
+        example: User changed metadata
+        type: string
+      release_date:
+        example: "2002-08-07"
+        type: string
+      series:
+        example: ""
+        type: string
+      source:
+        example: https://www.newgrounds.com/portal/view/59593
+        type: string
+      status:
+        example: Playable
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/Tag'
+        type: array
+      tags_str:
+        example: Alien Hominid; Action; Arcade; Beat 'Em Up; Platformer; Run 'n' Gun;
+          Score-Attack; Shooter; Cartoon; Officially Licensed; Side View; Alien; Blood;
+          Moderate Violence
+        type: string
+      title:
+        example: Alien Hominid
+        type: string
+      userID:
+        example: 529007944449261600
+        type: integer
+      version:
+        example: ""
+        type: string
+    type: object
+  GameData:
+    properties:
+      application_path:
+        type: string
+      crc_32:
+        type: integer
+      date_added:
+        type: string
+      game_id:
+        type: string
+      id:
+        type: integer
+      index_error:
+        type: boolean
+      indexed:
+        type: boolean
+      launch_command:
+        type: string
+      parameters:
+        type: string
+      sha_256:
+        type: string
+      size:
+        type: integer
+      title:
+        type: string
+    type: object
+  GameDataIndex:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/GameDataIndexFile'
+        type: array
+      date_added:
+        type: integer
+      game_id:
+        type: string
+    type: object
+  GameDataIndexFile:
+    properties:
+      crc32:
+        example: b102ef01
+        type: string
+      md5:
+        example: d32d41389d088db60d177d731d83f839
+        type: string
+      path:
+        example: content/uploads.ungrounded.net/59000/59593_alien_booya202c.swf
+        type: string
+      sha1:
+        example: d435e0d0eefe30d437f0df41c926449077cab22e
+        type: string
+      sha256:
+        example: 06c8bf04fd9a3d49fa9e1fe7bb54e4f085aae4163f7f9fbca55c8622bc2a6278
+        type: string
+      size:
+        example: 2037879
         type: integer
     type: object
   GameSlim:
@@ -88,6 +291,77 @@ definitions:
           type: string
         type: array
     type: object
+  Platform:
+    properties:
+      action:
+        example: ""
+        type: string
+      aliases:
+        example: Flash
+        type: string
+      date_modified:
+        example: "2023-04-26T19:27:31.849994Z"
+        type: string
+      deleted:
+        type: boolean
+      description:
+        example: ""
+        type: string
+      id:
+        example: 24
+        type: integer
+      name:
+        example: Flash
+        type: string
+      reason:
+        example: ""
+        type: string
+      user_id:
+        example: 810112564787675100
+        type: integer
+    type: object
+  Tag:
+    properties:
+      action:
+        example: create
+        type: string
+      aliases:
+        example: Action
+        type: string
+      category:
+        example: genre
+        type: string
+      date_modified:
+        example: "2023-04-26T19:27:31.849994Z"
+        type: string
+      deleted:
+        type: boolean
+      description:
+        example: ""
+        type: string
+      id:
+        example: 6
+        type: integer
+      name:
+        example: Action
+        type: string
+      reason:
+        example: Database Import
+        type: string
+      user_id:
+        example: 810112564787675166
+        type: integer
+    type: object
+  types.ArchiveState:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - NotArchived
+    - Archived
+    - Available
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
@@ -100,6 +374,57 @@ info:
   title: Flashpoint Submission API
   version: "1.0"
 paths:
+  /api/game/{id}:
+    get:
+      description: Find detailed info for a game
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Game'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Game Info
+      tags:
+      - Game
+  /api/game/{id}/data/{date}/index:
+    get:
+      description: Find the indexed file list for a given game data entry
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Game Data Creation Date (Unix Milliseconds)
+        in: path
+        name: date
+        required: true
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GameDataIndex'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Game Data Info
+      tags:
+      - Game
   /api/index/hash/{hash}:
     post:
       consumes:
@@ -147,6 +472,59 @@ paths:
       summary: Index Path Search
       tags:
       - Game Data Index
+  /api/platforms:
+    get:
+      description: Detailed list of all platforms
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Platform'
+            type: array
+      summary: All Platforms
+      tags:
+      - Tagged Fields
+  /api/tag/{id_or_name}:
+    get:
+      description: Find detailed info for a tag
+      parameters:
+      - description: Tag ID or Name
+        in: path
+        name: id_or_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Tag'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Tag Info
+      tags:
+      - Tagged Fields
+  /api/tags:
+    get:
+      description: Detailed list of all tags
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/Tag'
+            type: array
+      summary: All Tags
+      tags:
+      - Tagged Fields
 securityDefinitions:
   BasicAuth:
     type: basic
