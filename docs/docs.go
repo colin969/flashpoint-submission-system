@@ -483,10 +483,12 @@ const docTemplate = `{
                     }
                 },
                 "date_added": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1704945196068
                 },
                 "game_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "08143aa7-f3ae-45b0-a1d4-afa4ac44c845"
                 }
             }
         },

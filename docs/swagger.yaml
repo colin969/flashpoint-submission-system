@@ -185,8 +185,10 @@ definitions:
           $ref: '#/definitions/GameDataIndexFile'
         type: array
       date_added:
+        example: 1704945196068
         type: integer
       game_id:
+        example: 08143aa7-f3ae-45b0-a1d4-afa4ac44c845
         type: string
     type: object
   GameDataIndexFile:
