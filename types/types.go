@@ -38,6 +38,7 @@ type CurationMeta struct {
 	Extras              *string                  `json:"Extras"`
 	Message             *string                  `json:"Message"`
 	AdditionalApps      []*CurationAdditionalApp `json:"Additional Applications"`
+	RuffleSupport       *string                  `json:"Ruffle Support"`
 }
 
 type CurationAdditionalApp struct {
@@ -424,6 +425,7 @@ type GameDump struct {
 	AddApps         []*AdditionalApp `json:"add_apps"`
 	ActiveDataID    *int             `json:"active_data_id,omitempty"`
 	Data            []*GameData      `json:"data,omitempty"`
+	RuffleSupport   string           `json:"ruffle_support,omitempty"`
 	Action          string           `json:"action"`
 	Reason          string           `json:"reason"`
 	Deleted         bool
@@ -462,6 +464,7 @@ type Game struct {
 	Action          string           `json:"action" example:"update"`
 	Reason          string           `json:"reason" example:"User changed metadata"`
 	ArchiveState    ArchiveState     `json:"archive_state" example:"2"`
+	RuffleSupport   string           `json:"ruffle_support" example:"Standalone"`
 	Deleted         bool
 	UserID          int64 `example:"529007944449261600"`
 } // @name Game
@@ -788,6 +791,7 @@ type GameContentPatch struct {
 	OriginalDesc    *string `json:"OriginalDesc,omitempty"`
 	Language        *string `json:"Language,omitempty"`
 	Library         *string `json:"Library,omitempty"`
+	RuffleSupport   *string `json:"RuffleSupport,omitempty"`
 }
 
 type GameCountSinceDateJSON struct {

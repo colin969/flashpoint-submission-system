@@ -282,6 +282,13 @@
                                 {{end}}{{end}}</td>
                     </tr>
                     <tr>
+                        <td class="meta-property">Ruffle Support</td>
+                        <td class="break-all">{{if not .CurationMeta.RuffleSupport}}<i>None</i>{{else}}
+                                {{range $i, $line := (splitMultilineText .CurationMeta.RuffleSupport) }}{{if gt $i 0}}
+                                    <br>{{end}}{{$line}}
+                                {{end}}{{end}}</td>
+                    </tr>
+                    <tr>
                         <td class="meta-property">Notes</td>
                         <td class="break-all">{{if not .CurationMeta.GameNotes}}<i>No Notes</i>{{else}}
                                 {{range $i, $line := (splitMultilineText .CurationMeta.GameNotes) }}{{if gt $i 0}}
@@ -448,6 +455,13 @@
                             <td class="break-all">{{if not .CurationMeta.MountParameters}}<i>No Mount
                                     Parameters</i>{{else}}
                                     {{range $i, $line := (splitMultilineText .CurationMeta.MountParameters) }}{{if gt $i 0}}
+                                        <br>{{end}}{{$line}}
+                                    {{end}}{{end}}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-property">Ruffle Support</td>
+                            <td class="break-all">{{if not .CurationMeta.RuffleSupport}}<i>None</i>{{else}}
+                                    {{range $i, $line := (splitMultilineText .CurationMeta.RuffleSupport) }}{{if gt $i 0}}
                                         <br>{{end}}{{$line}}
                                     {{end}}{{end}}</td>
                         </tr>

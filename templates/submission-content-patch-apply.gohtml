@@ -230,6 +230,19 @@
                         <td><label for="curation-Library">{{.CurationMeta.Library}}</label></td>
                     </tr>
                 {{ end }}
+                {{ if ner .CurationMeta.RuffleSupport .ExistingMeta.RuffleSupport }}
+                    <tr>
+                        <td>Library</td>
+                        <td class="radio">
+                            <label><input type="radio" checked="checked" id="existing-RuffleSupport" name="RuffleSupport"></label>
+                        </td>
+                        <td><label for="existing-RuffleSupport">{{.ExistingMeta.RuffleSupport}}</label></td>
+                        <td class="radio">
+                            <label><input type="radio" id="curation-RuffleSupport" name="RuffleSupport"></label>
+                        </td>
+                        <td><label for="curation-RuffleSupport">{{.CurationMeta.RuffleSupport}}</label></td>
+                    </tr>
+                {{ end }}
             </tbody>
         </table>
 

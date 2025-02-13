@@ -258,7 +258,7 @@ func (d *postgresDAL) SearchGames(dbs PGDBSession, modifiedAfter *string, modifi
 	rows, err = dbs.Tx().Query(dbs.Ctx(), `SELECT game.id, game.parent_game_id, game.title, game.alternate_titles, game.series,
        		game.developer, game.publisher, game.date_added, game.date_modified, game.play_mode, game.status, game.notes, game.source,
        		game.application_path, game.launch_command, game.release_date, game.version, game.original_description, game.language,
-       		game.library, game.active_data_id, game.tags_str, game.platforms_str, game.platform_name, game.archive_state
+       		game.library, game.active_data_id, game.tags_str, game.platforms_str, game.platform_name, game.archive_state, game.ruffle_support
 			FROM game
 			WHERE game.date_modified >= $1 AND game.date_modified <= $2 AND game.id > $3 AND game.deleted = FALSE
 			ORDER BY game.id
@@ -276,7 +276,7 @@ func (d *postgresDAL) SearchGames(dbs PGDBSession, modifiedAfter *string, modifi
 		if err := rows.Scan(&game.ID, &game.ParentGameID, &game.Title, &game.AlternateTitles, &game.Series, &game.Developer,
 			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes, &game.Source,
 			&game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version, &game.OriginalDesc, &game.Language,
-			&game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr, &game.PrimaryPlatform, &game.ArchiveState); err != nil {
+			&game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr, &game.PrimaryPlatform, &game.ArchiveState, &game.RuffleSupport); err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
 
@@ -474,7 +474,7 @@ func (d *postgresDAL) GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game
 		publisher, date_added, date_modified, play_mode, status, notes,
 		source, application_path, launch_command, release_Date, version,
 		original_description, language, library, active_data_id, tags_str, platforms_str,
-		action, reason, deleted, user_id, platform_name, archive_state
+		action, reason, deleted, user_id, platform_name, archive_state, ruffle_support
 		FROM game WHERE id=ANY($1)`, gameIds)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -489,7 +489,7 @@ func (d *postgresDAL) GetGames(dbs PGDBSession, gameIds []string) ([]*types.Game
 			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes,
 			&game.Source, &game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version,
 			&game.OriginalDesc, &game.Language, &game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr,
-			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState)
+			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState, &game.RuffleSupport)
 		if err != nil {
 			return nil, err
 		}
@@ -528,13 +528,13 @@ func (d *postgresDAL) GetGame(dbs PGDBSession, gameId string) (*types.Game, erro
        		publisher, date_added, date_modified, play_mode, status, notes,
        		source, application_path, launch_command, release_Date, version,
        		original_description, language, library, active_data_id, tags_str, platforms_str,
-       		action, reason, deleted, user_id, platform_name, archive_state
+       		action, reason, deleted, user_id, platform_name, archive_state, ruffle_support
 			FROM game WHERE id = $1`, gameId).
 		Scan(&game.ID, &game.ParentGameID, &game.Title, &game.AlternateTitles, &game.Series, &game.Developer,
 			&game.Publisher, &game.DateAdded, &game.DateModified, &game.PlayMode, &game.Status, &game.Notes,
 			&game.Source, &game.ApplicationPath, &game.LaunchCommand, &game.ReleaseDate, &game.Version,
 			&game.OriginalDesc, &game.Language, &game.Library, &game.ActiveDataID, &game.TagsStr, &game.PlatformsStr,
-			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState)
+			&game.Action, &game.Reason, &game.Deleted, &game.UserID, &game.PrimaryPlatform, &game.ArchiveState, &game.RuffleSupport)
 	if err != nil {
 		return nil, err
 	}
@@ -992,13 +992,13 @@ func (d *postgresDAL) SaveGame(dbs PGDBSession, game *types.Game, uid int64) err
 					FROM game_platforms_platform p
 					WHERE p.game_id = game.id
 				), 
-				platform_name=$22, archive_state=$23
-            	WHERE id=$24`
+				platform_name=$22, archive_state=$23, ruffle_support=$24
+            	WHERE id=$25`
 	_, err = dbs.Tx().Exec(dbs.Ctx(), query, game.ParentGameID, game.Title, game.AlternateTitles, game.Series, game.Developer,
 		game.Publisher, game.PlayMode, game.Status, game.Notes, game.Source,
 		game.ApplicationPath, game.LaunchCommand, game.ReleaseDate, game.Version, game.OriginalDesc,
 		game.Language, game.Library, game.ActiveDataID, uid, "update", "User changed metadata", game.PrimaryPlatform,
-		game.ArchiveState, game.ID)
+		game.ArchiveState, game.RuffleSupport, game.ID)
 	if err != nil {
 		return err
 	}
@@ -1288,11 +1288,11 @@ func (d *postgresDAL) DeveloperImportDatabaseJson(dbs PGDBSession, dump *types.L
 	_, err = dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO changelog_game (id, parent_game_id, title, alternate_titles, series,
                             developer, publisher, date_added, date_modified, play_mode, status, notes, source,
                             application_path, launch_command, release_date, version, original_description, language,
-                            library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state)
+                            library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state, ruffle_support)
 		SELECT id, parent_game_id, title, alternate_titles, series,
 		       developer, publisher, date_added, date_modified, play_mode, status, notes, source,
 		       application_path, launch_command, release_date, version, original_description, language,
-		       library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state
+		       library, active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state, ruffle_support
 		FROM game`)
 	if err != nil {
 		return err
@@ -1487,17 +1487,21 @@ func (d *postgresDAL) ApplyGamePatch(dbs PGDBSession, uid int64, game *types.Gam
 		if patch.Library != nil {
 			game.Library = *patch.Library
 		}
+		if patch.RuffleSupport != nil {
+			game.RuffleSupport = *patch.RuffleSupport
+		}
 	}
 
 	_, err := dbs.Tx().Exec(dbs.Ctx(), `UPDATE game 
 		SET title = $1, alternate_titles = $2, series = $3, developer = $4, publisher = $5,
 		    play_mode = $6, status = $7, notes = $8, source = $9, release_date = $10,
 		    version = $11, original_description = $12, language = $13, library = $14,
-		    action = 'update', reason = 'Content Patch Metadata', user_id = $15
-		    WHERE id = $16`,
+			ruffle_support = $15
+		    action = 'update', reason = 'Content Patch Metadata', user_id = $16
+		    WHERE id = $17`,
 		game.Title, game.AlternateTitles, game.Series, game.Developer, game.Publisher,
 		game.PlayMode, game.Status, game.Notes, game.Source, game.ReleaseDate,
-		game.Version, game.OriginalDesc, game.Language, game.Library, uid, game.ID)
+		game.Version, game.OriginalDesc, game.Language, game.Library, game.RuffleSupport, uid, game.ID)
 	if err != nil {
 		return err
 	}
@@ -1873,12 +1877,12 @@ func (d *postgresDAL) AddSubmissionFromValidator(dbs PGDBSession, uid int64, vr 
 	_, err = dbs.Tx().Exec(dbs.Ctx(), `INSERT INTO game
 	(id, parent_game_id, title, alternate_titles, series, developer, publisher, play_mode, status, notes,
 	 source, application_path, launch_command, release_date, version, original_description, language, library,
-	 active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state) 
-	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)`,
+	 active_data_id, tags_str, platforms_str, action, reason, user_id, platform_name, archive_state, ruffle_support) 
+	 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
 		game.ID, "", game.Title, game.AlternateTitles, game.Series, game.Developer, game.Publisher, game.PlayMode,
 		game.Status, game.Notes, game.Source, game.ApplicationPath, game.LaunchCommand, game.ReleaseDate, game.Version,
 		game.OriginalDesc, game.Language, game.Library, gameData.ID, strings.Join(tagsStrArr, "; "),
-		strings.Join(platformsStrArr, "; "), "create", "Submission Import", uid, game.PrimaryPlatform, state)
+		strings.Join(platformsStrArr, "; "), "create", "Submission Import", uid, game.PrimaryPlatform, state, "")
 
 	if err != nil {
 		return nil, err
